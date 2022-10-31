@@ -147,6 +147,14 @@ impl PropertyType {
         false
     }
 
+    pub fn is_struct(&self) -> bool {
+        if let PropertyType::Struct(_) = self {
+            return true;
+        }
+
+        false
+    }
+
     pub fn is_boolean(&self) -> bool {
         if let PropertyType::Bool = self {
             return true;
