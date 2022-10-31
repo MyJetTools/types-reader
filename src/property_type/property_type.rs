@@ -17,6 +17,7 @@ pub const I_SIZE: &str = "isize";
 pub const BOOL: &str = "bool";
 pub const STRING: &str = "String";
 pub const STR: &str = "&str";
+pub const DATETIME: &str = "DateTimeAsMicroseconds";
 
 pub enum PropertyType {
     U8,
@@ -34,6 +35,7 @@ pub enum PropertyType {
     String,
     Str,
     Bool,
+    DateTime,
     OptionOf(Box<PropertyType>),
     VecOf(Box<PropertyType>),
     Struct(String),
@@ -80,6 +82,7 @@ impl PropertyType {
             I_SIZE => PropertyType::ISize,
             BOOL => PropertyType::Bool,
             STRING => PropertyType::String,
+            DATETIME => PropertyType::DateTime,
             "Option" => PropertyType::OptionOf(Box::new(super::utils::get_generic(type_path))),
             "Vec" => PropertyType::VecOf(Box::new(super::utils::get_generic(type_path))),
             _ => PropertyType::Struct(src.to_string()),
@@ -103,6 +106,8 @@ impl PropertyType {
             PropertyType::String => AsStr::create_as_str(STRING),
             PropertyType::Str => AsStr::create_as_str(STR),
             PropertyType::Bool => AsStr::create_as_str(BOOL),
+            PropertyType::DateTime => AsStr::create_as_str(DATETIME),
+
             PropertyType::OptionOf(generic_type) => {
                 AsStr::create_as_string(format!("Option<{}>", generic_type.as_str()))
             }
@@ -160,6 +165,14 @@ impl PropertyType {
 
     pub fn is_u8(&self) -> bool {
         if let PropertyType::U8 = self {
+            return true;
+        }
+
+        false
+    }
+
+    pub fn is_date_time(&self) -> bool {
+        if let PropertyType::DateTime = self {
             return true;
         }
 
