@@ -6,5 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-macros-utils = { version = "0.1.0", git = "https://github.com/MyJetTools/macros-utils.git" }
+macros-utils = { tag = "0.1.0", git = "https://github.com/MyJetTools/macros-utils.git" }
 syn = { version = "*", features = ["extra-traits"] }
