@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 macros-utils = { tag = "0.1.0", git = "https://github.com/MyJetTools/macros-utils.git" }
 syn = { version = "*", features = ["extra-traits"] }
+proc-macro2 = "*"
