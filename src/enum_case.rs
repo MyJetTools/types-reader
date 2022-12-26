@@ -1,19 +1,19 @@
 use macros_utils::attributes::Attributes;
 
-pub struct EnumCase {
+pub struct EnumCase<'s> {
     pub attrs: Attributes,
-    pub name: String,
+    pub variant: &'s syn::Variant,
 }
 
-impl EnumCase {
-    pub fn read(ast: &syn::DeriveInput) -> Vec<Self> {
+impl<'s> EnumCase<'s> {
+    pub fn read(ast: &'s syn::DeriveInput) -> Vec<Self> {
         let mut result = Vec::new();
 
         if let syn::Data::Enum(syn::DataEnum { variants, .. }) = &ast.data {
-            for varian in variants {
+            for variant in variants {
                 result.push(EnumCase {
-                    name: varian.ident.to_string(),
-                    attrs: crate::attributes::parse(&varian.attrs),
+                    attrs: crate::attributes::parse(&variant.attrs),
+                    variant,
                 });
             }
         } else {
@@ -21,5 +21,13 @@ impl EnumCase {
         };
 
         result
+    }
+
+    pub fn get_name(&self) -> String {
+        self.variant.ident.to_string()
+    }
+
+    pub fn get_name_ident(&self) -> &syn::Ident {
+        &self.variant.ident
     }
 }
