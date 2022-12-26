@@ -1,6 +1,7 @@
 use syn::TypePath;
 
 use super::AsStr;
+use quote::quote;
 
 pub const U8: &str = "u8";
 pub const I8: &str = "i8";
@@ -19,7 +20,7 @@ pub const STRING: &str = "String";
 pub const STR: &str = "&str";
 pub const DATETIME: &str = "DateTimeAsMicroseconds";
 
-pub enum PropertyType {
+pub enum PropertyType<'s> {
     U8,
     I8,
     U16,
@@ -36,13 +37,13 @@ pub enum PropertyType {
     Str,
     Bool,
     DateTime,
-    OptionOf(Box<PropertyType>),
-    VecOf(Box<PropertyType>),
-    Struct(String),
+    OptionOf(Box<PropertyType<'s>>),
+    VecOf(Box<PropertyType<'s>>),
+    Struct(&'s TypePath),
 }
 
-impl PropertyType {
-    pub fn new(field: &syn::Field) -> Self {
+impl<'s> PropertyType<'s> {
+    pub fn new(field: &'s syn::Field) -> Self {
         match &field.ty {
             syn::Type::Slice(_) => panic!("Slice type is not supported"),
             syn::Type::Array(_) => panic!("Array type is not supported"),
@@ -66,7 +67,7 @@ impl PropertyType {
         }
     }
 
-    pub fn parse(src: &str, type_path: &TypePath) -> Self {
+    pub fn parse(src: &str, type_path: &'s TypePath) -> Self {
         match src {
             U8 => PropertyType::U8,
             I8 => PropertyType::I8,
@@ -85,7 +86,7 @@ impl PropertyType {
             DATETIME => PropertyType::DateTime,
             "Option" => PropertyType::OptionOf(Box::new(super::utils::get_generic(type_path))),
             "Vec" => PropertyType::VecOf(Box::new(super::utils::get_generic(type_path))),
-            _ => PropertyType::Struct(src.to_string()),
+            _ => PropertyType::Struct(type_path),
         }
     }
 
@@ -109,12 +110,17 @@ impl PropertyType {
             PropertyType::DateTime => AsStr::create_as_str(DATETIME),
 
             PropertyType::OptionOf(generic_type) => {
-                AsStr::create_as_string(format!("Option<{}>", generic_type.as_str()))
+                AsStr::create_as_string(format!("Option::<{}>", generic_type.as_str()))
             }
             PropertyType::VecOf(generic_type) => {
-                AsStr::create_as_string(format!("Vec<{}>", generic_type.as_str()))
+                AsStr::create_as_string(format!("Vec::<{}>", generic_type.as_str()))
             }
-            PropertyType::Struct(name) => AsStr::create_as_str(name.as_str()),
+            PropertyType::Struct(type_path) => {
+                panic!(
+                    "Struct type is not supported in as_str method: {:?}",
+                    type_path
+                )
+            }
         }
     }
 
@@ -185,5 +191,35 @@ impl PropertyType {
         }
 
         false
+    }
+
+    pub fn get_token_stream(&self) -> proc_macro2::TokenStream {
+        match self {
+            PropertyType::U8 => quote!(u8),
+            PropertyType::I8 => quote!(i8),
+            PropertyType::U16 => quote!(u16),
+            PropertyType::I16 => quote!(i16),
+            PropertyType::U32 => quote!(u32),
+            PropertyType::I32 => quote!(i32),
+            PropertyType::U64 => quote!(u64),
+            PropertyType::I64 => quote!(i64),
+            PropertyType::F32 => quote!(f32),
+            PropertyType::F64 => quote!(f64),
+            PropertyType::USize => quote!(usize),
+            PropertyType::ISize => quote!(isize),
+            PropertyType::String => quote!(String),
+            PropertyType::Str => todo!("get_token_stream Str is not supported"),
+            PropertyType::Bool => quote!(String),
+            PropertyType::DateTime => quote!(rust_extensions::DateTime),
+            PropertyType::OptionOf(sub_type) => {
+                let sub_type = sub_type.get_token_stream();
+                quote!(Option::<#sub_type>)
+            }
+            PropertyType::VecOf(sub_type) => {
+                let sub_type = sub_type.get_token_stream();
+                quote!(Vec::<#sub_type>)
+            }
+            PropertyType::Struct(_) => todo!("get_token_stream Struct is not supported"),
+        }
     }
 }

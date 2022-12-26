@@ -4,7 +4,7 @@ use crate::PropertyType;
 
 pub struct StructProperty<'s> {
     pub name: String,
-    pub ty: PropertyType,
+    pub ty: PropertyType<'s>,
     pub field: &'s syn::Field,
     pub attrs: Attributes,
 }
