@@ -210,7 +210,7 @@ impl<'s> PropertyType<'s> {
             PropertyType::String => quote!(String),
             PropertyType::Str => todo!("get_token_stream Str is not supported"),
             PropertyType::Bool => quote!(String),
-            PropertyType::DateTime => quote!(rust_extensions::DateTime),
+            PropertyType::DateTime => quote!(rust_extensions::date_time::DateTime),
             PropertyType::OptionOf(sub_type) => {
                 let sub_type = sub_type.get_token_stream();
                 quote!(Option::<#sub_type>)
