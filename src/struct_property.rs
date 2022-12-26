@@ -1,4 +1,6 @@
-use macros_utils::attributes::Attributes;
+use std::collections::HashMap;
+
+use macros_utils::AttributeParams;
 
 use crate::PropertyType;
 
@@ -6,7 +8,7 @@ pub struct StructProperty<'s> {
     pub name: String,
     pub ty: PropertyType<'s>,
     pub field: &'s syn::Field,
-    pub attrs: Attributes,
+    pub attrs: HashMap<String, Option<AttributeParams>>,
 }
 
 impl<'s> StructProperty<'s> {
