@@ -42,7 +42,7 @@ impl<'s> StructProperty<'s> {
     pub fn get_field_name_ident(&self) -> &syn::Ident {
         &self.field.ident.as_ref().unwrap()
     }
-    pub fn get_syn_type_as_token_stream(&self) -> &syn::Type {
+    pub fn get_syn_type(&self) -> &syn::Type {
         &self.field.ty
     }
 }
