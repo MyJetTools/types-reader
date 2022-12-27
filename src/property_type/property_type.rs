@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use syn::TypePath;
 
 use super::AsStr;
@@ -219,8 +221,9 @@ impl<'s> PropertyType<'s> {
                 let sub_type = sub_type.get_token_stream();
                 quote!(Vec::<#sub_type>)
             }
-            PropertyType::Struct(_, path) => {
-                quote!(#path)
+            PropertyType::Struct(name, _) => {
+                let name = proc_macro2::TokenStream::from_str(name).unwrap();
+                quote!(#name)
             }
         }
     }
