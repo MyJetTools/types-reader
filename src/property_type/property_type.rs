@@ -39,7 +39,7 @@ pub enum PropertyType<'s> {
     DateTime,
     OptionOf(Box<PropertyType<'s>>),
     VecOf(Box<PropertyType<'s>>),
-    Struct(&'s TypePath),
+    Struct(String, &'s TypePath),
 }
 
 impl<'s> PropertyType<'s> {
@@ -54,7 +54,7 @@ impl<'s> PropertyType<'s> {
             syn::Type::Tuple(_) => panic!("Tuple type is not supported"),
             syn::Type::Path(type_path) => {
                 let type_as_string = super::utils::simple_type_to_string(type_path);
-                return PropertyType::parse(type_as_string.as_str(), type_path);
+                return PropertyType::parse(type_as_string, type_path);
             }
             syn::Type::TraitObject(_) => panic!("TraitObject type is not supported"),
             syn::Type::ImplTrait(_) => panic!("ImplTrait type is not supported"),
@@ -67,8 +67,8 @@ impl<'s> PropertyType<'s> {
         }
     }
 
-    pub fn parse(src: &str, type_path: &'s TypePath) -> Self {
-        match src {
+    pub fn parse(src: String, type_path: &'s TypePath) -> Self {
+        match src.as_str() {
             U8 => PropertyType::U8,
             I8 => PropertyType::I8,
             U16 => PropertyType::U16,
@@ -86,7 +86,7 @@ impl<'s> PropertyType<'s> {
             DATETIME => PropertyType::DateTime,
             "Option" => PropertyType::OptionOf(Box::new(super::utils::get_generic(type_path))),
             "Vec" => PropertyType::VecOf(Box::new(super::utils::get_generic(type_path))),
-            _ => PropertyType::Struct(type_path),
+            _ => PropertyType::Struct(src, type_path),
         }
     }
 
@@ -115,7 +115,7 @@ impl<'s> PropertyType<'s> {
             PropertyType::VecOf(generic_type) => {
                 AsStr::create_as_string(format!("Vec::<{}>", generic_type.as_str()))
             }
-            PropertyType::Struct(type_path) => {
+            PropertyType::Struct(_, type_path) => {
                 panic!(
                     "Struct type is not supported in as_str method: {:?}",
                     type_path
@@ -154,7 +154,7 @@ impl<'s> PropertyType<'s> {
     }
 
     pub fn is_struct(&self) -> bool {
-        if let PropertyType::Struct(_) = self {
+        if let PropertyType::Struct(_, _) = self {
             return true;
         }
 
@@ -219,7 +219,7 @@ impl<'s> PropertyType<'s> {
                 let sub_type = sub_type.get_token_stream();
                 quote!(Vec::<#sub_type>)
             }
-            PropertyType::Struct(_) => todo!("get_token_stream Struct is not supported"),
+            PropertyType::Struct(_, _) => todo!("get_token_stream Struct is not supported"),
         }
     }
 }
