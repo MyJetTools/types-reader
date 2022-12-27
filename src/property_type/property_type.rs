@@ -219,7 +219,9 @@ impl<'s> PropertyType<'s> {
                 let sub_type = sub_type.get_token_stream();
                 quote!(Vec::<#sub_type>)
             }
-            PropertyType::Struct(_, _) => todo!("get_token_stream Struct is not supported"),
+            PropertyType::Struct(_, path) => {
+                quote!(#path)
+            }
         }
     }
 }
