@@ -5,6 +5,7 @@ use macros_utils::AttributeParams;
 pub struct EnumCase<'s> {
     pub attrs: HashMap<String, Option<AttributeParams>>,
     pub variant: &'s syn::Variant,
+    pub name: String,
 }
 
 impl<'s> EnumCase<'s> {
@@ -13,9 +14,11 @@ impl<'s> EnumCase<'s> {
 
         if let syn::Data::Enum(syn::DataEnum { variants, .. }) = &ast.data {
             for variant in variants {
+                let name = variant.ident.to_string();
                 result.push(EnumCase {
                     attrs: crate::attributes::parse(&variant.attrs),
                     variant,
+                    name,
                 });
             }
         } else {
@@ -23,10 +26,6 @@ impl<'s> EnumCase<'s> {
         };
 
         result
-    }
-
-    pub fn get_name(&self) -> String {
-        self.variant.ident.to_string()
     }
 
     pub fn get_name_ident(&self) -> &syn::Ident {
