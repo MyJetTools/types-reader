@@ -12,22 +12,21 @@ pub struct EnumCase<'s> {
 }
 
 impl<'s> EnumCase<'s> {
-    pub fn read(ast: &'s syn::DeriveInput) -> Vec<Self> {
+    pub fn read(ast: &'s syn::DeriveInput) -> Result<Vec<Self>, syn::Error> {
         let mut result = Vec::new();
 
         if let syn::Data::Enum(data_enum) = &ast.data {
             for variant in data_enum.variants.iter() {
                 match &variant.fields {
                     syn::Fields::Named(data) => {
-                        println!("named: {:#?}", data);
+                        return Err(syn::Error::new_spanned(
+                            variant,
+                            "Named enum case is not supported",
+                        ));
                     }
                     syn::Fields::Unnamed(data) => {
                         println!("unnamed: {:#?}", data);
-                    }
-                    syn::Fields::Unit => {
-                        println!("Unit: {:#?}", variant.ident);
 
-                        /*
                         let name = variant.ident.to_string();
 
                         let model = EnumModel::new(variant);
@@ -37,7 +36,17 @@ impl<'s> EnumCase<'s> {
                             name,
                             model,
                         });
-                         */
+                    }
+                    syn::Fields::Unit => {
+                        let name = variant.ident.to_string();
+
+                        let model = EnumModel::new(variant);
+                        result.push(EnumCase {
+                            attrs: crate::attributes::parse(&variant.attrs),
+                            variant,
+                            name,
+                            model,
+                        });
                     }
                 }
             }
