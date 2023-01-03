@@ -6,8 +6,7 @@ use crate::EnumModel;
 
 pub struct EnumCase<'s> {
     pub attrs: HashMap<String, Option<AttributeParams>>,
-    pub variant: &'s syn::Variant,
-    pub name: String,
+    name_ident: &'s syn::Ident,
     pub model: Option<EnumModel>,
 }
 
@@ -18,7 +17,7 @@ impl<'s> EnumCase<'s> {
         if let syn::Data::Enum(data_enum) = &ast.data {
             for variant in data_enum.variants.iter() {
                 match &variant.fields {
-                    syn::Fields::Named(data) => {
+                    syn::Fields::Named(_) => {
                         return Err(syn::Error::new_spanned(
                             variant,
                             "Named enum case is not supported",
@@ -27,27 +26,19 @@ impl<'s> EnumCase<'s> {
                     syn::Fields::Unnamed(data) => {
                         println!("unnamed: {:#?}", data);
 
-                        /*
-                        let name = variant.ident.to_string();
-
                         let model = EnumModel::new(variant);
                         result.push(EnumCase {
                             attrs: crate::attributes::parse(&variant.attrs),
-                            variant,
-                            name,
                             model,
+                            name_ident: &variant.ident,
                         });
-                         */
                     }
                     syn::Fields::Unit => {
-                        let name = variant.ident.to_string();
-
                         let model = EnumModel::new(variant);
                         result.push(EnumCase {
                             attrs: crate::attributes::parse(&variant.attrs),
-                            variant,
-                            name,
                             model,
+                            name_ident: &variant.ident,
                         });
                     }
                 }
@@ -60,6 +51,6 @@ impl<'s> EnumCase<'s> {
     }
 
     pub fn get_name_ident(&self) -> &syn::Ident {
-        &self.variant.ident
+        &self.name_ident
     }
 }
