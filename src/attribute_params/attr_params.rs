@@ -74,33 +74,47 @@ impl<'s> AttributeParams<'s> {
         ))
     }
 
-    pub fn get_single_param(&'s self) -> Option<ParamValue<'s>> {
+    pub fn get_single_param(&'s self) -> Result<ParamValue<'s>, syn::Error> {
         match &self.param_type {
-            ParamsType::None { .. } => None,
-            ParamsType::Single { pos, .. } => ParamValue {
+            ParamsType::None { .. } => Err(syn::Error::new_spanned(
+                self.src.get_str(),
+                "Attribute has no params",
+            )),
+            ParamsType::Single { pos, .. } => Ok(ParamValue {
                 value: self.src.get_str()[pos.from..pos.to].as_bytes(),
-            }
-            .into(),
-            ParamsType::Multiple { .. } => None,
+            }),
+            ParamsType::Multiple { .. } => Err(syn::Error::new_spanned(
+                self.src.get_str(),
+                "Attribute has multiple params",
+            )),
         }
     }
 
-    pub fn get_named_param(&'s self, param_name: &str) -> Option<ParamValue<'s>> {
+    pub fn get_named_param(&'s self, param_name: &str) -> Result<ParamValue<'s>, syn::Error> {
         match &self.param_type {
-            ParamsType::None { .. } => None,
-            ParamsType::Single { .. } => None,
+            ParamsType::None { .. } => Err(syn::Error::new_spanned(
+                self.src.get_str(),
+                format!("Attribute has no params"),
+            )),
+            ParamsType::Single { .. } => Err(syn::Error::new_spanned(
+                self.src.get_str(),
+                format!("Attribute has single param"),
+            )),
             ParamsType::Multiple { pos, .. } => {
                 for (key, value) in pos {
                     let key = key.get_str(&self.src.get_str());
 
                     if key == param_name {
-                        return Some(ParamValue {
+                        return Ok(ParamValue {
                             value: value.get_str(&self.src.get_str()).as_bytes(),
                         });
                     }
                 }
 
-                None
+                Err(syn::Error::new_spanned(
+                    self.src.get_str(),
+                    format!("Attribute has no param with name {}", param_name),
+                ))
             }
         }
     }
@@ -119,9 +133,12 @@ impl<'s> AttributeParams<'s> {
         false
     }
 
-    pub fn get_from_single_or_named(&'s self, param_name: &str) -> Option<ParamValue<'s>> {
-        if let Some(result) = self.get_single_param() {
-            return Some(result);
+    pub fn get_from_single_or_named(
+        &'s self,
+        param_name: &str,
+    ) -> Result<ParamValue<'s>, syn::Error> {
+        if let Ok(result) = self.get_single_param() {
+            return Ok(result);
         }
 
         self.get_named_param(param_name)

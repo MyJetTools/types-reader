@@ -24,14 +24,14 @@ impl<'s> EnumCase<'s> {
 
                         let model = EnumModel::new(data)?;
                         result.push(EnumCase {
-                            attrs: Attributes::new(&variant.attrs)?,
+                            attrs: Attributes::new(ast, &variant.attrs)?,
                             model: Some(model),
                             name_ident: &variant.ident,
                         });
                     }
                     syn::Fields::Unit => {
                         result.push(EnumCase {
-                            attrs: Attributes::new(&variant.attrs)?,
+                            attrs: Attributes::new(ast, &variant.attrs)?,
                             model: None,
                             name_ident: &variant.ident,
                         });

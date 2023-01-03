@@ -22,7 +22,7 @@ impl<'s> StructProperty<'s> {
         };
 
         for field in &fields.named {
-            let attrs = Attributes::new(&field.attrs)?;
+            let attrs = Attributes::new(ast, &field.attrs)?;
 
             let name = field.ident.as_ref().unwrap().to_string();
 

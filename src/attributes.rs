@@ -4,10 +4,11 @@ use crate::attribute_params::{AttributeParams, ParamValue};
 
 pub struct Attributes<'s> {
     attrs: HashMap<String, AttributeParams<'s>>,
+    root: &'s syn::DeriveInput,
 }
 
 impl<'s> Attributes<'s> {
-    pub fn new(src: &'s [syn::Attribute]) -> Result<Self, syn::Error> {
+    pub fn new(root: &'s syn::DeriveInput, src: &'s [syn::Attribute]) -> Result<Self, syn::Error> {
         let mut attrs = HashMap::new();
 
         for attr in src {
@@ -15,11 +16,28 @@ impl<'s> Attributes<'s> {
             attrs.insert(attr.get_id_token().to_string(), attr);
         }
 
-        Ok(Self { attrs })
+        Ok(Self { root, attrs })
     }
 
-    pub fn get_named_param(&'s self, attr_name: &str, param_name: &str) -> Option<ParamValue> {
-        let attr = self.attrs.get(attr_name)?;
+    pub fn get_attr(&'s self, attr_name: &str) -> Result<&'s AttributeParams<'s>, syn::Error> {
+        let attr = self.attrs.get(attr_name);
+
+        if attr.is_none() {
+            return Err(syn::Error::new_spanned(
+                self.root,
+                format!("Attribute {} not found", attr_name),
+            ));
+        }
+
+        Ok(attr.unwrap())
+    }
+
+    pub fn get_named_param(
+        &'s self,
+        attr_name: &str,
+        param_name: &str,
+    ) -> Result<ParamValue, syn::Error> {
+        let attr = self.get_attr(attr_name)?;
         attr.get_named_param(param_name)
     }
 
@@ -27,8 +45,9 @@ impl<'s> Attributes<'s> {
         &'s self,
         attr_name: &str,
         param_name: &str,
-    ) -> Option<ParamValue> {
-        let attr = self.attrs.get(attr_name)?;
+    ) -> Result<ParamValue, syn::Error> {
+        let attr = self.get_attr(attr_name)?;
+
         attr.get_from_single_or_named(param_name)
     }
 
