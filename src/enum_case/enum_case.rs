@@ -7,7 +7,7 @@ use crate::EnumModel;
 pub struct EnumCase<'s> {
     pub attrs: HashMap<String, Option<AttributeParams>>,
     name_ident: &'s syn::Ident,
-    pub model: Option<EnumModel>,
+    pub model: Option<EnumModel<'s>>,
 }
 
 impl<'s> EnumCase<'s> {
@@ -26,18 +26,17 @@ impl<'s> EnumCase<'s> {
                     syn::Fields::Unnamed(data) => {
                         println!("unnamed: {:#?}", data);
 
-                        let model = EnumModel::new(variant);
+                        let model = EnumModel::new(data)?;
                         result.push(EnumCase {
                             attrs: crate::attributes::parse(&variant.attrs),
-                            model,
+                            model: Some(model),
                             name_ident: &variant.ident,
                         });
                     }
                     syn::Fields::Unit => {
-                        let model = EnumModel::new(variant);
                         result.push(EnumCase {
                             attrs: crate::attributes::parse(&variant.attrs),
-                            model,
+                            model: None,
                             name_ident: &variant.ident,
                         });
                     }
