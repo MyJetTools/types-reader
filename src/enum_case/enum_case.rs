@@ -54,7 +54,7 @@ impl<'s> EnumCase<'s> {
             panic!("Enum Only")
         };
 
-        result
+        Ok(result)
     }
 
     pub fn get_name_ident(&self) -> &syn::Ident {
