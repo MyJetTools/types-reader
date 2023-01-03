@@ -27,6 +27,7 @@ impl<'s> EnumCase<'s> {
                     syn::Fields::Unnamed(data) => {
                         println!("unnamed: {:#?}", data);
 
+                        /*
                         let name = variant.ident.to_string();
 
                         let model = EnumModel::new(variant);
@@ -36,6 +37,7 @@ impl<'s> EnumCase<'s> {
                             name,
                             model,
                         });
+                         */
                     }
                     syn::Fields::Unit => {
                         let name = variant.ident.to_string();
