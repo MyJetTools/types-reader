@@ -1,18 +1,14 @@
-use std::collections::HashMap;
-
-use macros_utils::AttributeParams;
-
-use crate::PropertyType;
+use crate::{attributes::Attributes, PropertyType};
 
 pub struct StructProperty<'s> {
     pub name: String,
     pub ty: PropertyType<'s>,
     pub field: &'s syn::Field,
-    pub attrs: HashMap<String, Option<AttributeParams>>,
+    pub attrs: Attributes<'s>,
 }
 
 impl<'s> StructProperty<'s> {
-    pub fn read(ast: &'s syn::DeriveInput) -> Vec<Self> {
+    pub fn read(ast: &'s syn::DeriveInput) -> Result<Vec<Self>, syn::Error> {
         let mut result = Vec::new();
 
         let fields = if let syn::Data::Struct(syn::DataStruct {
@@ -26,7 +22,7 @@ impl<'s> StructProperty<'s> {
         };
 
         for field in &fields.named {
-            let attrs = super::attributes::parse(&field.attrs);
+            let attrs = Attributes::new(&field.attrs)?;
 
             let name = field.ident.as_ref().unwrap().to_string();
 
@@ -38,7 +34,7 @@ impl<'s> StructProperty<'s> {
             })
         }
 
-        result
+        Ok(result)
     }
 
     pub fn get_field_name_ident(&self) -> &syn::Ident {

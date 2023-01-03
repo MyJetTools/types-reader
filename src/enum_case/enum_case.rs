@@ -1,11 +1,7 @@
-use std::collections::HashMap;
-
-use macros_utils::AttributeParams;
-
-use crate::EnumModel;
+use crate::{attributes::Attributes, EnumModel};
 
 pub struct EnumCase<'s> {
-    pub attrs: HashMap<String, Option<AttributeParams>>,
+    pub attrs: Attributes<'s>,
     name_ident: &'s syn::Ident,
     pub model: Option<EnumModel<'s>>,
 }
@@ -28,14 +24,14 @@ impl<'s> EnumCase<'s> {
 
                         let model = EnumModel::new(data)?;
                         result.push(EnumCase {
-                            attrs: crate::attributes::parse(&variant.attrs),
+                            attrs: Attributes::new(&variant.attrs)?,
                             model: Some(model),
                             name_ident: &variant.ident,
                         });
                     }
                     syn::Fields::Unit => {
                         result.push(EnumCase {
-                            attrs: crate::attributes::parse(&variant.attrs),
+                            attrs: Attributes::new(&variant.attrs)?,
                             model: None,
                             name_ident: &variant.ident,
                         });
