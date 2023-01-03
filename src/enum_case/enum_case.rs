@@ -20,8 +20,6 @@ impl<'s> EnumCase<'s> {
                         ));
                     }
                     syn::Fields::Unnamed(data) => {
-                        println!("unnamed: {:#?}", data);
-
                         let model = EnumModel::new(data)?;
                         result.push(EnumCase {
                             attrs: Attributes::new(ast, &variant.attrs)?,
