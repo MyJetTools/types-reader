@@ -15,19 +15,31 @@ impl<'s> EnumCase<'s> {
     pub fn read(ast: &'s syn::DeriveInput) -> Vec<Self> {
         let mut result = Vec::new();
 
-        println!("enum: {:#?}", ast);
+        if let syn::Data::Enum(data_enum) = &ast.data {
+            for variant in data_enum.variants.iter() {
+                match &variant.fields {
+                    syn::Fields::Named(data) => {
+                        println!("named: {:#?}", data);
+                    }
+                    syn::Fields::Unnamed(data) => {
+                        println!("unnamed: {:#?}", data);
+                    }
+                    syn::Fields::Unit => {
+                        println!("Unit: {:#?}", variant.ident);
 
-        if let syn::Data::Enum(syn::DataEnum { variants, .. }) = &ast.data {
-            for variant in variants {
-                let name = variant.ident.to_string();
+                        /*
+                        let name = variant.ident.to_string();
 
-                let model = EnumModel::new(variant);
-                result.push(EnumCase {
-                    attrs: crate::attributes::parse(&variant.attrs),
-                    variant,
-                    name,
-                    model,
-                });
+                        let model = EnumModel::new(variant);
+                        result.push(EnumCase {
+                            attrs: crate::attributes::parse(&variant.attrs),
+                            variant,
+                            name,
+                            model,
+                        });
+                         */
+                    }
+                }
             }
         } else {
             panic!("Enum Only")
