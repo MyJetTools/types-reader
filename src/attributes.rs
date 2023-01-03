@@ -18,17 +18,29 @@ impl<'s> Attributes<'s> {
         Ok(Self { attrs })
     }
 
-    pub fn get_named_param(&'s self, name: &str) -> Option<ParamValue> {
-        let attr = self.attrs.get(name)?;
-        attr.get_named_param(name)
+    pub fn get_named_param(&'s self, attr_name: &str, param_name: &str) -> Option<ParamValue> {
+        let attr = self.attrs.get(attr_name)?;
+        attr.get_named_param(param_name)
     }
 
-    pub fn get_single_or_named_param(&'s self, name: &str) -> Option<ParamValue> {
-        let attr = self.attrs.get(name)?;
-        attr.get_from_single_or_named(name)
+    pub fn get_single_or_named_param(
+        &'s self,
+        attr_name: &str,
+        param_name: &str,
+    ) -> Option<ParamValue> {
+        let attr = self.attrs.get(attr_name)?;
+        attr.get_from_single_or_named(param_name)
     }
 
     pub fn has_attr(&self, name: &str) -> bool {
         self.attrs.contains_key(name)
+    }
+
+    pub fn has_attr_and_param(&self, attr_name: &str, param_name: &str) -> bool {
+        if let Some(attr) = self.attrs.get(attr_name) {
+            return attr.has_param(param_name);
+        }
+
+        false
     }
 }
