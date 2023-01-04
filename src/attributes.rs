@@ -67,7 +67,7 @@ impl<'s> Attributes<'s> {
         self.attrs.remove(name)
     }
 
-    pub fn get_attr_names<TIter: Iterator<Item = &'s str>>(
+    pub fn get_attr_names(
         &'s self,
     ) -> std::collections::hash_map::Keys<String, AttributeParams<'s>> {
         self.attrs.keys()
