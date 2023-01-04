@@ -62,4 +62,14 @@ impl<'s> Attributes<'s> {
 
         false
     }
+
+    pub fn remove(&'s mut self, name: &str) -> Option<AttributeParams<'s>> {
+        self.attrs.remove(name)
+    }
+
+    pub fn get_attr_names<TIter: Iterator<Item = &'s str>>(
+        &'s self,
+    ) -> std::collections::hash_map::Keys<String, AttributeParams<'s>> {
+        self.attrs.keys()
+    }
 }
