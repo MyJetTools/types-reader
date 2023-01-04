@@ -159,6 +159,14 @@ impl<'s> AttributeParams<'s> {
             ParamsType::Multiple { attr_id, .. } => attr_id,
         }
     }
+
+    pub fn has_params_at_all(&self) -> bool {
+        match self.param_type {
+            ParamsType::None { .. } => false,
+            ParamsType::Single { .. } => true,
+            ParamsType::Multiple { .. } => true,
+        }
+    }
 }
 
 fn is_single_value(src: &str) -> Option<Position> {
