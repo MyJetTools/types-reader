@@ -227,4 +227,36 @@ impl<'s> PropertyType<'s> {
             }
         }
     }
+
+    pub fn get_token_stream_with_generics(&self) -> proc_macro2::TokenStream {
+        match self {
+            PropertyType::U8 => quote!(u8),
+            PropertyType::I8 => quote!(i8),
+            PropertyType::U16 => quote!(u16),
+            PropertyType::I16 => quote!(i16),
+            PropertyType::U32 => quote!(u32),
+            PropertyType::I32 => quote!(i32),
+            PropertyType::U64 => quote!(u64),
+            PropertyType::I64 => quote!(i64),
+            PropertyType::F32 => quote!(f32),
+            PropertyType::F64 => quote!(f64),
+            PropertyType::USize => quote!(usize),
+            PropertyType::ISize => quote!(isize),
+            PropertyType::String => quote!(String),
+            PropertyType::Str => todo!("get_token_stream Str is not supported"),
+            PropertyType::Bool => quote!(bool),
+            PropertyType::DateTime => quote!(rust_extensions::date_time::DateTimeAsMicroseconds),
+            PropertyType::OptionOf(sub_type) => {
+                let sub_type = sub_type.get_token_stream();
+                quote!(Option::<#sub_type>)
+            }
+            PropertyType::VecOf(sub_type) => {
+                let sub_type = sub_type.get_token_stream();
+                quote!(Vec::<#sub_type>)
+            }
+            PropertyType::Struct(_, ty) => {
+                quote!(#ty)
+            }
+        }
+    }
 }
