@@ -32,6 +32,16 @@ pub enum ParamsType<'s> {
     },
 }
 
+impl<'s> ParamsType<'s> {
+    pub fn get_id_token(&self) -> &syn::Ident {
+        match self {
+            ParamsType::None { attr_id, .. } => attr_id,
+            ParamsType::Single { attr_id, .. } => attr_id,
+            ParamsType::Multiple { attr_id, .. } => attr_id,
+        }
+    }
+}
+
 pub struct AttributeParams<'s> {
     src: SrcString,
     pub param_type: ParamsType<'s>,
@@ -77,14 +87,14 @@ impl<'s> AttributeParams<'s> {
     pub fn get_single_param(&'s self) -> Result<ParamValue<'s>, syn::Error> {
         match &self.param_type {
             ParamsType::None { .. } => Err(syn::Error::new_spanned(
-                self.src.get_str(),
+                self.param_type.get_id_token(),
                 "Attribute has no params",
             )),
             ParamsType::Single { pos, .. } => Ok(ParamValue {
                 value: self.src.get_str()[pos.from..pos.to].as_bytes(),
             }),
             ParamsType::Multiple { .. } => Err(syn::Error::new_spanned(
-                self.src.get_str(),
+                self.param_type.get_id_token(),
                 "Attribute has multiple params",
             )),
         }
@@ -93,11 +103,11 @@ impl<'s> AttributeParams<'s> {
     pub fn get_named_param(&'s self, param_name: &str) -> Result<ParamValue<'s>, syn::Error> {
         match &self.param_type {
             ParamsType::None { .. } => Err(syn::Error::new_spanned(
-                self.src.get_str(),
+                self.param_type.get_id_token(),
                 format!("Attribute has no params"),
             )),
             ParamsType::Single { .. } => Err(syn::Error::new_spanned(
-                self.src.get_str(),
+                self.param_type.get_id_token(),
                 format!("Attribute has single param"),
             )),
             ParamsType::Multiple { pos, .. } => {
@@ -112,7 +122,7 @@ impl<'s> AttributeParams<'s> {
                 }
 
                 Err(syn::Error::new_spanned(
-                    self.src.get_str(),
+                    self.param_type.get_id_token(),
                     format!("Attribute has no param with name {}", param_name),
                 ))
             }
