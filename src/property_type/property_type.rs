@@ -247,11 +247,11 @@ impl<'s> PropertyType<'s> {
             PropertyType::Bool => quote!(bool),
             PropertyType::DateTime => quote!(rust_extensions::date_time::DateTimeAsMicroseconds),
             PropertyType::OptionOf(sub_type) => {
-                let sub_type = sub_type.get_token_stream();
+                let sub_type = sub_type.get_token_stream_with_generics();
                 quote!(Option::<#sub_type>)
             }
             PropertyType::VecOf(sub_type) => {
-                let sub_type = sub_type.get_token_stream();
+                let sub_type = sub_type.get_token_stream_with_generics();
                 quote!(Vec::<#sub_type>)
             }
             PropertyType::Struct(_, ty) => {
