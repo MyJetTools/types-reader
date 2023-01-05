@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{ops::Index, str::FromStr};
 
 use syn::TypePath;
 
@@ -255,7 +255,15 @@ impl<'s> PropertyType<'s> {
                 quote!(Vec::<#sub_type>)
             }
             PropertyType::Struct(_, ty) => {
-                quote!(#ty)
+                let mut as_str = quote!(#ty).to_string();
+
+                if let Some(index) = as_str.find(|itm| itm == '<') {
+                    as_str = format!("{}::{}", &as_str[..index], &as_str[index..]);
+                }
+
+                println!("{}", as_str);
+
+                proc_macro2::TokenStream::from_str(&as_str).unwrap()
             }
         }
     }
