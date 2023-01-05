@@ -261,8 +261,6 @@ impl<'s> PropertyType<'s> {
                     as_str = format!("{}::{}", &as_str[..index], &as_str[index..]);
                 }
 
-                println!("{}", as_str);
-
                 proc_macro2::TokenStream::from_str(&as_str).unwrap()
             }
         }
