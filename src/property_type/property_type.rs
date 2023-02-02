@@ -1,4 +1,4 @@
-use std::{ops::Index, str::FromStr};
+use std::str::FromStr;
 
 use syn::TypePath;
 
@@ -42,6 +42,7 @@ pub enum PropertyType<'s> {
     OptionOf(Box<PropertyType<'s>>),
     VecOf(Box<PropertyType<'s>>),
     Struct(String, &'s TypePath),
+    HashMap(Box<PropertyType<'s>>, Box<PropertyType<'s>>),
 }
 
 impl<'s> PropertyType<'s> {
@@ -88,6 +89,10 @@ impl<'s> PropertyType<'s> {
             DATETIME => PropertyType::DateTime,
             "Option" => PropertyType::OptionOf(Box::new(super::utils::get_generic(type_path))),
             "Vec" => PropertyType::VecOf(Box::new(super::utils::get_generic(type_path))),
+            "HashMap" => {
+                let mut generics = super::utils::get_generics(type_path);
+                PropertyType::HashMap(Box::new(generics.remove(0)), Box::new(generics.remove(0)))
+            }
             _ => PropertyType::Struct(src, type_path),
         }
     }
@@ -116,6 +121,9 @@ impl<'s> PropertyType<'s> {
             }
             PropertyType::VecOf(generic_type) => {
                 AsStr::create_as_string(format!("Vec::<{}>", generic_type.as_str()))
+            }
+            PropertyType::HashMap(key, value) => {
+                AsStr::create_as_string(format!("HashMap::<{},{}>", key.as_str(), value.as_str()))
             }
             PropertyType::Struct(_, type_path) => {
                 panic!(
@@ -221,6 +229,11 @@ impl<'s> PropertyType<'s> {
                 let sub_type = sub_type.get_token_stream();
                 quote!(Vec::<#sub_type>)
             }
+            PropertyType::HashMap(key, value) => {
+                let key = key.get_token_stream();
+                let value = value.get_token_stream();
+                quote!(HashMap::<#key,#value>)
+            }
             PropertyType::Struct(name, _) => {
                 let name = proc_macro2::TokenStream::from_str(name).unwrap();
                 quote!(#name)
@@ -253,6 +266,12 @@ impl<'s> PropertyType<'s> {
             PropertyType::VecOf(sub_type) => {
                 let sub_type = sub_type.get_token_stream_with_generics();
                 quote!(Vec::<#sub_type>)
+            }
+
+            PropertyType::HashMap(key, value) => {
+                let key = key.get_token_stream_with_generics();
+                let value = value.get_token_stream_with_generics();
+                quote!(HashMap::<#key,#value>)
             }
             PropertyType::Struct(_, ty) => {
                 let mut as_str = quote!(#ty).to_string();
