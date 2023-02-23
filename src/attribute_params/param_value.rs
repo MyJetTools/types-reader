@@ -7,6 +7,10 @@ pub struct ParamValue<'s> {
 
 impl<'s> ParamValue<'s> {
     pub fn as_str(&'s self) -> &'s str {
+        if self.value.len() == 0 {
+            return "";
+        }
+
         if self.value[0] == b'"' {
             std::str::from_utf8(&self.value[1..self.value.len() - 1]).unwrap()
         } else {
