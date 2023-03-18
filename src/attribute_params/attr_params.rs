@@ -61,11 +61,9 @@ impl AttributeParams {
             ));
         }
 
-        println!("ATTR: {}", attributes);
+        let (name, params) = super::attr_parse_utils::find_params(&attributes[1..]);
 
-        let params = super::attr_parse_utils::find_params(&attributes[1..]);
-
-        Self::create(attr.to_token_stream(), None, params)
+        Self::create(attr.to_token_stream(), Some(name), params)
     }
 
     pub fn from_token_string(token_stream: TokenStream) -> Result<Self, syn::Error> {

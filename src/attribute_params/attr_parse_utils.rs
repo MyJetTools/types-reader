@@ -1,12 +1,24 @@
-pub fn find_params(src: &str) -> Option<String> {
-    let from = src.find('(')?;
-    let to = find_from_end(src)?;
-
-    if to - from == 1 {
-        return None;
+pub fn find_params(src: &str) -> (String, Option<String>) {
+    let from = src.find('(');
+    if from.is_none() {
+        panic!("Attribute does not have a name");
     }
 
-    Some(src[from..to].to_string())
+    let from = from.unwrap();
+
+    let to = find_from_end(src);
+
+    if to.is_none() {
+        panic!("Attribute does not have a closing bracket");
+    }
+
+    let to = to.unwrap();
+
+    if to - from == 1 {
+        return (src[..from].to_string(), None);
+    }
+
+    (src[..from].to_string(), Some(src[from..to].to_string()))
 }
 
 fn find_from_end(src: &str) -> Option<usize> {
