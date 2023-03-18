@@ -18,7 +18,10 @@ pub fn find_params(src: &str) -> (String, Option<String>) {
         return (src[..from].to_string(), None);
     }
 
-    (src[1..from].to_string(), Some(src[from..to].to_string()))
+    (
+        src[1..from].trim().to_string(),
+        Some(src[from..to].to_string()),
+    )
 }
 
 fn find_from_end(src: &str) -> Option<usize> {
