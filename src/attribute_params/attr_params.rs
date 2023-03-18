@@ -21,13 +21,16 @@ impl Position {
 pub enum ParamsType {
     None {
         attr: TokenStream,
+        name: Option<String>,
     },
     Single {
         pos: Position,
+        name: Option<String>,
         attr: TokenStream,
     },
     Multiple {
         pos: Vec<(Position, Position)>,
+        name: Option<String>,
         attr: TokenStream,
     },
 }
@@ -62,28 +65,33 @@ impl AttributeParams {
 
         let params = super::attr_parse_utils::find_params(&attributes[1..]);
 
-        Self::create(attr.to_token_stream(), params)
+        Self::create(attr.to_token_stream(), None, params)
     }
 
     pub fn from_token_string(token_stream: TokenStream) -> Result<Self, syn::Error> {
         let as_string = token_stream.to_string();
 
-        Self::create(token_stream, Some(as_string))
+        Self::create(token_stream, None, Some(as_string))
     }
 
-    fn create(attr: TokenStream, params: Option<String>) -> Result<Self, syn::Error> {
+    fn create(
+        attr: TokenStream,
+        name: Option<String>,
+        params: Option<String>,
+    ) -> Result<Self, syn::Error> {
         match params {
             Some(params) => {
                 if let Some(pos) = is_single_value(&params) {
                     return Ok(Self {
                         src: params.to_string(),
-                        param_type: ParamsType::Single { pos, attr },
+                        param_type: ParamsType::Single { pos, attr, name },
                     });
                 }
                 return Ok(Self {
                     param_type: ParamsType::Multiple {
                         pos: AttrParamsParser::new(params.as_bytes()).collect(),
                         attr,
+                        name,
                     },
                     src: params.to_string(),
                 });
@@ -91,7 +99,7 @@ impl AttributeParams {
             None => {
                 return Ok(Self {
                     src: "".to_string(),
-                    param_type: ParamsType::None { attr },
+                    param_type: ParamsType::None { attr, name },
                 });
             }
         }
@@ -172,6 +180,19 @@ impl AttributeParams {
             ParamsType::None { attr, .. } => attr,
             ParamsType::Single { attr, .. } => attr,
             ParamsType::Multiple { attr, .. } => attr,
+        }
+    }
+
+    pub fn get_name(&self) -> String {
+        let result = match &self.param_type {
+            ParamsType::None { name, .. } => name,
+            ParamsType::Single { name, .. } => name,
+            ParamsType::Multiple { name, .. } => name,
+        };
+
+        match result {
+            Some(name) => name.to_string(),
+            None => panic!("Attribute does not have a name"),
         }
     }
 

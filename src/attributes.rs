@@ -13,7 +13,7 @@ impl<'s> Attributes<'s> {
 
         for attr in src {
             let attr = AttributeParams::new(attr)?;
-            attrs.insert(attr.get_attr_token().to_string(), attr);
+            attrs.insert(attr.get_name(), attr);
         }
 
         Ok(Self { root, attrs })
