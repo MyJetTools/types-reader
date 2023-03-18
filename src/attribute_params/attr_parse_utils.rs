@@ -1,7 +1,10 @@
 pub fn find_params(src: &str) -> (String, Option<String>) {
     let from = src.find('(');
     if from.is_none() {
-        return (src[1..].trim().to_string(), None);
+        let name = src[1..].trim().to_string();
+
+        println!("Name: {}", name);
+        return (name, None);
     }
 
     let from = from.unwrap();
