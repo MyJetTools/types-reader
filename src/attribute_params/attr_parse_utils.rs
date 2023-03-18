@@ -1,7 +1,7 @@
 pub fn find_params(src: &str) -> (String, Option<String>) {
     let from = src.find('(');
     if from.is_none() {
-        panic!("Attribute does not have a name");
+        return (src[1..].trim().to_string(), None);
     }
 
     let from = from.unwrap();
