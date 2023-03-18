@@ -58,6 +58,8 @@ impl AttributeParams {
             ));
         }
 
+        println!("ATTR: {}", attributes);
+
         let params = super::attr_parse_utils::find_params(&attributes[1..]);
 
         Self::create(attr.to_token_stream(), params)
