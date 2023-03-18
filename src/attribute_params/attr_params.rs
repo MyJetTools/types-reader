@@ -1,6 +1,6 @@
 use quote::ToTokens;
 
-use super::{AttrParamsParser, ParamValue, SrcString};
+use super::{AttrParamsParser, ParamValue};
 
 pub struct Position {
     pub from: usize,
@@ -45,17 +45,49 @@ impl<'s> ParamsType<'s> {
 }
 
 pub struct AttributeParams<'s> {
-    src: SrcString,
+    src: String,
     pub param_type: ParamsType<'s>,
 }
 
 impl<'s> AttributeParams<'s> {
     pub fn new(attr: &'s syn::Attribute) -> Result<Self, syn::Error> {
-        let token_stream = attr.to_token_stream();
+        let attributes = attr.to_token_stream().to_string();
 
         let attr_id = &attr.path().get_ident().unwrap();
 
-        panic!("Implementing {} of {} error", attr_id, token_stream);
+        if !attributes.starts_with("#") {
+            return Err(syn::Error::new_spanned(
+                attr,
+                "Attribute has to start with #",
+            ));
+        }
+
+        let params = super::attr_parse_utils::find_params(&attributes[1..]);
+
+        match params {
+            Some(params) => {
+                if let Some(pos) = is_single_value(params) {
+                    return Ok(Self {
+                        src: params.to_string(),
+                        param_type: ParamsType::Single { pos, attr, attr_id },
+                    });
+                }
+                return Ok(Self {
+                    param_type: ParamsType::Multiple {
+                        pos: AttrParamsParser::new(params.as_bytes()).collect(),
+                        attr,
+                        attr_id,
+                    },
+                    src: params.to_string(),
+                });
+            }
+            None => {
+                return Ok(Self {
+                    src: "".to_string(),
+                    param_type: ParamsType::None { attr_id, attr },
+                });
+            }
+        }
 
         /*
         for segment in &attr.path().segments {
@@ -69,22 +101,7 @@ impl<'s> AttributeParams<'s> {
                 });
             }
 
-            let src = SrcString::new(params);
 
-            if let Some(pos) = is_single_value(src.get_str()) {
-                return Ok(Self {
-                    src,
-                    param_type: ParamsType::Single { pos, attr, attr_id },
-                });
-            }
-            return Ok(Self {
-                param_type: ParamsType::Multiple {
-                    pos: AttrParamsParser::new(src.get_str().as_bytes()).collect(),
-                    attr,
-                    attr_id,
-                },
-                src,
-            });
         }
 
         Err(syn::Error::new_spanned(
@@ -101,7 +118,7 @@ impl<'s> AttributeParams<'s> {
                 "Attribute has no params",
             )),
             ParamsType::Single { pos, .. } => Ok(ParamValue {
-                value: self.src.get_str()[pos.from..pos.to].as_bytes(),
+                value: self.src[pos.from..pos.to].as_bytes(),
             }),
             ParamsType::Multiple { .. } => Err(syn::Error::new_spanned(
                 self.param_type.get_id_token(),
@@ -122,11 +139,11 @@ impl<'s> AttributeParams<'s> {
             )),
             ParamsType::Multiple { pos, .. } => {
                 for (key, value) in pos {
-                    let key = key.get_str(&self.src.get_str());
+                    let key = key.get_str(&self.src.as_str());
 
                     if key == param_name {
                         return Ok(ParamValue {
-                            value: value.get_str(&self.src.get_str()).as_bytes(),
+                            value: value.get_str(&self.src.as_str()).as_bytes(),
                         });
                     }
                 }
@@ -142,7 +159,7 @@ impl<'s> AttributeParams<'s> {
     pub fn has_param(&self, param_name: &str) -> bool {
         if let ParamsType::Multiple { pos, .. } = &self.param_type {
             for (key, _) in pos {
-                if key.get_str(&self.src.get_str()) == param_name {
+                if key.get_str(&self.src.as_str()) == param_name {
                     return true;
                 }
             }

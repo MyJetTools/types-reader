@@ -20,7 +20,7 @@ pub const I_SIZE: &str = "isize";
 pub const BOOL: &str = "bool";
 pub const STRING: &str = "String";
 pub const STR: &str = "&str";
-pub const DATETIME: &str = "DateTimeAsMicroseconds";
+pub const DATE_TIME: &str = "DateTimeAsMicroseconds";
 
 pub enum PropertyType<'s> {
     U8,
@@ -86,7 +86,7 @@ impl<'s> PropertyType<'s> {
             I_SIZE => PropertyType::ISize,
             BOOL => PropertyType::Bool,
             STRING => PropertyType::String,
-            DATETIME => PropertyType::DateTime,
+            DATE_TIME => PropertyType::DateTime,
             "Option" => PropertyType::OptionOf(Box::new(super::utils::get_generic(type_path))),
             "Vec" => PropertyType::VecOf(Box::new(super::utils::get_generic(type_path))),
             "HashMap" => {
@@ -114,7 +114,7 @@ impl<'s> PropertyType<'s> {
             PropertyType::String => AsStr::create_as_str(STRING),
             PropertyType::Str => AsStr::create_as_str(STR),
             PropertyType::Bool => AsStr::create_as_str(BOOL),
-            PropertyType::DateTime => AsStr::create_as_str(DATETIME),
+            PropertyType::DateTime => AsStr::create_as_str(DATE_TIME),
 
             PropertyType::OptionOf(generic_type) => {
                 AsStr::create_as_string(format!("Option::<{}>", generic_type.as_str()))

@@ -10,7 +10,7 @@ impl<'s> AttrParamsParser<'s> {
         Self { src, pos: 0 }
     }
 
-    fn find_begining_of_key(&mut self) -> Option<usize> {
+    fn find_beginning_of_key(&mut self) -> Option<usize> {
         for i in self.pos..self.src.len() {
             if self.src[i] <= 32 {
                 continue;
@@ -170,9 +170,9 @@ impl<'s> Iterator for AttrParamsParser<'s> {
     type Item = (Position, Position);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let param_name_start_pos = self.find_begining_of_key()?;
+        let param_name_start_pos = self.find_beginning_of_key()?;
 
-        check_if_value_start_complient_symbol(self.src[param_name_start_pos]);
+        check_if_value_start_compliant_symbol(self.src[param_name_start_pos]);
 
         self.pos = param_name_start_pos;
 
@@ -226,7 +226,7 @@ impl<'s> Iterator for AttrParamsParser<'s> {
     }
 }
 
-fn check_if_value_start_complient_symbol(c: u8) {
+fn check_if_value_start_compliant_symbol(c: u8) {
     if c >= b'a' && c <= b'z' {
         return;
     }
@@ -342,7 +342,7 @@ mod test {
     }
 
     #[test]
-    pub fn test_simple_structure_with_default_at_the_begining() {
+    pub fn test_simple_structure_with_default_at_the_beginning() {
         let params = r#"(default, a: "1")"#;
 
         let result =
