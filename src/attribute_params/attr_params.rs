@@ -54,16 +54,10 @@ impl AttributeParams {
     pub fn new(attr: &syn::Attribute) -> Result<Self, syn::Error> {
         let attributes = attr.to_token_stream().to_string();
 
-        if !attributes.starts_with("#") {
-            return Err(syn::Error::new_spanned(
-                attr,
-                "Attribute has to start with #",
-            ));
+        match super::attr_parse_utils::parse_attribute_with_name_and_params(&attributes) {
+            Ok((name, params)) => Self::create(attr.to_token_stream(), Some(name), params),
+            Err(message) => Err(syn::Error::new_spanned(attr, message)),
         }
-
-        let (name, params) = super::attr_parse_utils::find_params(&attributes[1..]);
-
-        Self::create(attr.to_token_stream(), Some(name), params)
     }
 
     pub fn from_token_string(token_stream: TokenStream) -> Result<Self, syn::Error> {
