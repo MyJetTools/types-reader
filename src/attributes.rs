@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::attribute_params::{AttributeParams, ParamValue};
 
 pub struct Attributes<'s> {
-    attrs: HashMap<String, AttributeParams>,
+    pub attrs: HashMap<String, AttributeParams>,
     root: &'s syn::DeriveInput,
 }
 
@@ -15,8 +15,6 @@ impl<'s> Attributes<'s> {
             let attr = AttributeParams::new(attr)?;
             attrs.insert(attr.get_name(), attr);
         }
-
-        println!("Attributes: {:?}", attrs.keys());
 
         Ok(Self { root, attrs })
     }
