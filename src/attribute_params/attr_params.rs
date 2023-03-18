@@ -74,6 +74,7 @@ impl AttributeParams {
 
         let mut attr_id = None;
         for itm in attr.to_token_stream() {
+            println!("TokenTree: {}", itm);
             if let proc_macro2::TokenTree::Ident(ident) = itm {
                 attr_id = Some(ident);
                 break;
