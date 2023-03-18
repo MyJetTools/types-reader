@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::attribute_params::{AttributeParams, ParamValue};
 
 pub struct Attributes<'s> {
-    pub attrs: HashMap<String, AttributeParams>,
+    attrs: HashMap<String, AttributeParams>,
     root: &'s syn::DeriveInput,
 }
 
@@ -52,7 +52,16 @@ impl<'s> Attributes<'s> {
     }
 
     pub fn has_attr(&self, name: &str) -> bool {
-        self.attrs.contains_key(name)
+        let result = self.attrs.contains_key(name);
+
+        println!(
+            "Lookign for attr {} is in attrs: {:?}. Result: {}",
+            name,
+            self.attrs.keys(),
+            result
+        );
+
+        result
     }
 
     pub fn has_attr_and_param(&self, attr_name: &str, param_name: &str) -> bool {

@@ -26,8 +26,6 @@ impl<'s> StructProperty<'s> {
 
             let name = field.ident.as_ref().unwrap().to_string();
 
-            println!("Field: {} has attrs {:?}", name, attrs.attrs.keys());
-
             result.push(Self {
                 name,
                 field,
