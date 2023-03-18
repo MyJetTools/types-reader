@@ -1,3 +1,4 @@
+use proc_macro2::TokenStream;
 use quote::ToTokens;
 
 use super::{AttrParamsParser, ParamValue};
@@ -17,25 +18,25 @@ impl Position {
     }
 }
 
-pub enum ParamsType<'s> {
+pub enum ParamsType {
     None {
-        attr_id: &'s syn::Ident,
-        attr: &'s syn::Attribute,
+        attr_id: TokenStream,
+        attr: TokenStream,
     },
     Single {
         pos: Position,
-        attr_id: &'s syn::Ident,
-        attr: &'s syn::Attribute,
+        attr_id: TokenStream,
+        attr: TokenStream,
     },
     Multiple {
         pos: Vec<(Position, Position)>,
-        attr_id: &'s syn::Ident,
-        attr: &'s syn::Attribute,
+        attr_id: TokenStream,
+        attr: TokenStream,
     },
 }
 
-impl<'s> ParamsType<'s> {
-    pub fn get_id_token(&self) -> &syn::Ident {
+impl ParamsType {
+    pub fn get_id_token(&self) -> &TokenStream {
         match self {
             ParamsType::None { attr_id, .. } => attr_id,
             ParamsType::Single { attr_id, .. } => attr_id,
@@ -44,13 +45,13 @@ impl<'s> ParamsType<'s> {
     }
 }
 
-pub struct AttributeParams<'s> {
+pub struct AttributeParams {
     src: String,
-    pub param_type: ParamsType<'s>,
+    pub param_type: ParamsType,
 }
 
-impl<'s> AttributeParams<'s> {
-    pub fn new(attr: &'s syn::Attribute) -> Result<Self, syn::Error> {
+impl AttributeParams {
+    pub fn new(attr: &syn::Attribute) -> Result<Self, syn::Error> {
         let attributes = attr.to_token_stream().to_string();
 
         let attr_id = &attr.path().get_ident().unwrap();
@@ -64,9 +65,39 @@ impl<'s> AttributeParams<'s> {
 
         let params = super::attr_parse_utils::find_params(&attributes[1..]);
 
+        Self::create(attr.to_token_stream(), attr_id.to_token_stream(), params)
+    }
+
+    pub fn from_token_string(attr: TokenStream) -> Result<Self, syn::Error> {
+        let as_string = attr.to_string();
+        let params = super::attr_parse_utils::find_params(&as_string[1..]);
+
+        let mut attr_id = None;
+        for itm in attr.to_token_stream() {
+            if let proc_macro2::TokenTree::Ident(ident) = itm {
+                attr_id = Some(ident);
+                break;
+            }
+        }
+
+        if attr_id.is_none() {
+            return Err(syn::Error::new_spanned(
+                attr,
+                format!("Attribute {} has no  Ident", as_string),
+            ));
+        }
+
+        Self::create(attr, attr_id.unwrap().to_token_stream(), params)
+    }
+
+    fn create(
+        attr: TokenStream,
+        attr_id: TokenStream,
+        params: Option<String>,
+    ) -> Result<Self, syn::Error> {
         match params {
             Some(params) => {
-                if let Some(pos) = is_single_value(params) {
+                if let Some(pos) = is_single_value(&params) {
                     return Ok(Self {
                         src: params.to_string(),
                         param_type: ParamsType::Single { pos, attr, attr_id },
@@ -88,30 +119,9 @@ impl<'s> AttributeParams<'s> {
                 });
             }
         }
-
-        /*
-        for segment in &attr.path().segments {
-
-            let params = attr.bracket_token.to_string();
-
-            if params == "" {
-                return Ok(Self {
-                    src: SrcString::new(params),
-                    param_type: ParamsType::None { attr, attr_id },
-                });
-            }
-
-
-        }
-
-        Err(syn::Error::new_spanned(
-            attr,
-            "Attribute has wrong content to parse",
-        ))
-         */
     }
 
-    pub fn get_single_param(&'s self) -> Result<ParamValue<'s>, syn::Error> {
+    pub fn get_single_param<'s>(&'s self) -> Result<ParamValue<'s>, syn::Error> {
         match &self.param_type {
             ParamsType::None { .. } => Err(syn::Error::new_spanned(
                 self.param_type.get_id_token(),
@@ -127,7 +137,7 @@ impl<'s> AttributeParams<'s> {
         }
     }
 
-    pub fn get_named_param(&'s self, param_name: &str) -> Result<ParamValue<'s>, syn::Error> {
+    pub fn get_named_param<'s>(&'s self, param_name: &str) -> Result<ParamValue<'s>, syn::Error> {
         match &self.param_type {
             ParamsType::None { .. } => Err(syn::Error::new_spanned(
                 self.param_type.get_id_token(),
@@ -170,7 +180,7 @@ impl<'s> AttributeParams<'s> {
         false
     }
 
-    pub fn get_from_single_or_named(
+    pub fn get_from_single_or_named<'s>(
         &'s self,
         param_name: &str,
     ) -> Result<ParamValue<'s>, syn::Error> {
@@ -181,16 +191,16 @@ impl<'s> AttributeParams<'s> {
         self.get_named_param(param_name)
     }
 
-    pub fn get_attr_token(&'s self) -> &'s syn::Attribute {
-        match self.param_type {
+    pub fn get_attr_token<'s>(&'s self) -> &TokenStream {
+        match &self.param_type {
             ParamsType::None { attr, .. } => attr,
             ParamsType::Single { attr, .. } => attr,
             ParamsType::Multiple { attr, .. } => attr,
         }
     }
 
-    pub fn get_id_token(&'s self) -> &'s syn::Ident {
-        match self.param_type {
+    pub fn get_id_token<'s>(&'s self) -> &TokenStream {
+        match &self.param_type {
             ParamsType::None { attr_id, .. } => attr_id,
             ParamsType::Single { attr_id, .. } => attr_id,
             ParamsType::Multiple { attr_id, .. } => attr_id,

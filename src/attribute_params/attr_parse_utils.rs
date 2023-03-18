@@ -1,4 +1,4 @@
-pub fn find_params(src: &str) -> Option<&str> {
+pub fn find_params(src: &str) -> Option<String> {
     let from = src.find('(')?;
     let to = find_from_end(src)?;
 
@@ -6,7 +6,7 @@ pub fn find_params(src: &str) -> Option<&str> {
         return None;
     }
 
-    Some(&src[from..to])
+    Some(src[from..to].to_string())
 }
 
 fn find_from_end(src: &str) -> Option<usize> {

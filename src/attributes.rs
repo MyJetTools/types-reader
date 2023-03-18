@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use crate::attribute_params::{AttributeParams, ParamValue};
 
 pub struct Attributes<'s> {
-    attrs: HashMap<String, AttributeParams<'s>>,
+    attrs: HashMap<String, AttributeParams>,
     root: &'s syn::DeriveInput,
 }
 
@@ -19,7 +19,7 @@ impl<'s> Attributes<'s> {
         Ok(Self { root, attrs })
     }
 
-    pub fn get_attr(&'s self, attr_name: &str) -> Result<&'s AttributeParams<'s>, syn::Error> {
+    pub fn get_attr(&'s self, attr_name: &str) -> Result<&'s AttributeParams, syn::Error> {
         let attr = self.attrs.get(attr_name);
 
         if attr.is_none() {
@@ -63,13 +63,11 @@ impl<'s> Attributes<'s> {
         false
     }
 
-    pub fn remove(&'s mut self, name: &str) -> Option<AttributeParams<'s>> {
+    pub fn remove(&'s mut self, name: &str) -> Option<AttributeParams> {
         self.attrs.remove(name)
     }
 
-    pub fn get_attr_names(
-        &'s self,
-    ) -> std::collections::hash_map::Keys<String, AttributeParams<'s>> {
+    pub fn get_attr_names(&'s self) -> std::collections::hash_map::Keys<String, AttributeParams> {
         self.attrs.keys()
     }
 }
