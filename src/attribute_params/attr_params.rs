@@ -65,9 +65,14 @@ impl AttributeParams {
 
     pub fn from_token_string(attr: TokenStream) -> Result<Self, syn::Error> {
         let as_string = attr.to_string();
-        let params = super::attr_parse_utils::find_params(&as_string[1..]);
 
-        Self::create(attr, params)
+        let as_string = if as_string == "" {
+            None
+        } else {
+            Some(as_string)
+        };
+
+        Self::create(attr, as_string)
     }
 
     fn create(attr: TokenStream, params: Option<String>) -> Result<Self, syn::Error> {
