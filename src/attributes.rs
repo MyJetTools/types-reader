@@ -54,8 +54,15 @@ impl<'s> Attributes<'s> {
     pub fn has_attr(&self, name: &str) -> bool {
         let result = self.attrs.contains_key(name);
 
+        result
+    }
+
+    pub fn has_attr_debug(&self, field_name: &str, name: &str) -> bool {
+        let result = self.attrs.contains_key(name);
+
         println!(
-            "Lookign for attr {} is in attrs: {:?}. Result: {}",
+            "Field: {}. Looking for attr {} is in attrs: {:?}. Result: {}",
+            field_name,
             name,
             self.attrs.keys(),
             result
