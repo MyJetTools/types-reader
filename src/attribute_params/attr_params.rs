@@ -51,15 +51,17 @@ pub struct AttributeParams<'s> {
 
 impl<'s> AttributeParams<'s> {
     pub fn new(attr: &'s syn::Attribute) -> Result<Self, syn::Error> {
-        let a = attr.to_token_stream().to_string();
+        for segment in &attr.path().segments {
+            println!("{}", segment.ident)
+        }
 
-        println!("Attribute: {}", a);
+        let attr_id = &attr.path().get_ident().unwrap();
 
-        panic!("Implementing");
+        panic!("Implementing {} error", attr_id);
 
         /*
         for segment in &attr.path().segments {
-            let attr_id = &segment.ident;
+
             let params = attr.bracket_token.to_string();
 
             if params == "" {
