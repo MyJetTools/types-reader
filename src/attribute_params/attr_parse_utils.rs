@@ -3,7 +3,6 @@ pub fn find_params(src: &str) -> (String, Option<String>) {
     if from.is_none() {
         let name = src[1..src.len() - 1].trim().to_string();
 
-        println!("Name: [{}]", name);
         return (name, None);
     }
 
