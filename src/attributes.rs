@@ -16,6 +16,8 @@ impl<'s> Attributes<'s> {
             attrs.insert(attr.get_name(), attr);
         }
 
+        println!("Attributes: {:?}", attrs.keys());
+
         Ok(Self { root, attrs })
     }
 
