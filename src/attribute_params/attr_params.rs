@@ -69,7 +69,7 @@ impl AttributeParams {
     }
 
     pub fn from_token_string(attr: TokenStream) -> Result<Self, syn::Error> {
-        println!("TokenStream: {}", attr.to_string());
+        println!("Attr: TokenStream: {}", attr.to_string());
 
         let as_string = attr.to_string();
         let params = super::attr_parse_utils::find_params(&as_string[1..]);
