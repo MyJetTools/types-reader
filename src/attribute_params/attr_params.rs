@@ -1,3 +1,5 @@
+use quote::ToTokens;
+
 use super::{AttrParamsParser, ParamValue, SrcString};
 
 pub struct Position {
@@ -49,9 +51,16 @@ pub struct AttributeParams<'s> {
 
 impl<'s> AttributeParams<'s> {
     pub fn new(attr: &'s syn::Attribute) -> Result<Self, syn::Error> {
-        for segment in attr.path.segments.iter() {
+        let a = attr.to_token_stream().to_string();
+
+        println!("Attribute: {}", a);
+
+        panic!("Implementing");
+
+        /*
+        for segment in &attr.path().segments {
             let attr_id = &segment.ident;
-            let params = attr.tokens.to_string();
+            let params = attr.bracket_token.to_string();
 
             if params == "" {
                 return Ok(Self {
@@ -82,6 +91,7 @@ impl<'s> AttributeParams<'s> {
             attr,
             "Attribute has wrong content to parse",
         ))
+         */
     }
 
     pub fn get_single_param(&'s self) -> Result<ParamValue<'s>, syn::Error> {
