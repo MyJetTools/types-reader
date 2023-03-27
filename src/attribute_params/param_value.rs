@@ -48,4 +48,22 @@ impl<'s> ParamValue<'s> {
             }
         }
     }
+
+    pub fn get_bool_value(&'s self) -> Result<bool, syn::Error> {
+        let value = self.as_str().to_lowercase();
+        match value.as_str() {
+            "true" => Ok(true),
+            "false" => Ok(true),
+            _ => {
+                if let Some(token) = &self.token {
+                    return Err(syn::Error::new_spanned(
+                        token,
+                        "Value must be 'true' or 'false'",
+                    ));
+                } else {
+                    panic!("Value must be 'true' or 'false': But value is: {}", value)
+                }
+            }
+        }
+    }
 }
