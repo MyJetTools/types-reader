@@ -36,6 +36,12 @@ impl<'s> Attributes<'s> {
         Ok(attr.unwrap().get(0).unwrap())
     }
 
+    pub fn try_get_attr(&'s self, attr_name: &str) -> Option<&'s AttributeParams> {
+        let attr = self.attrs.get(attr_name)?;
+
+        Some(attr.get(0).unwrap())
+    }
+
     pub fn get_attrs(&'s self, attr_name: &str) -> Result<&'s Vec<AttributeParams>, syn::Error> {
         let attr = self.attrs.get(attr_name);
 
@@ -47,6 +53,10 @@ impl<'s> Attributes<'s> {
         }
 
         Ok(attr.unwrap())
+    }
+
+    pub fn try_get_attrs(&'s self, attr_name: &str) -> Option<&'s Vec<AttributeParams>> {
+        self.attrs.get(attr_name)
     }
 
     pub fn get_named_param(
