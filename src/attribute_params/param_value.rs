@@ -53,7 +53,7 @@ impl<'s> ParamValue<'s> {
         let value = self.as_str().to_lowercase();
         match value.as_str() {
             "true" => Ok(true),
-            "false" => Ok(true),
+            "false" => Ok(false),
             _ => {
                 if let Some(token) = &self.token {
                     return Err(syn::Error::new_spanned(
