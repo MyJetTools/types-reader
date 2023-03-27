@@ -18,11 +18,17 @@ impl<'s> ParamValue<'s> {
         }
     }
 
-    pub fn get_value<TResult: FromStr>(&'s self) -> TResult {
+    pub fn get_value<TResult: FromStr>(&'s self, err_message: Option<&'static str>) -> TResult {
         let value = self.as_str();
         match TResult::from_str(value) {
             Ok(result) => result,
-            Err(_) => panic!("Can not parse from string value: {}", value),
+            Err(_) => {
+                if let Some(err) = err_message {
+                    panic!("{}", err);
+                } else {
+                    panic!("Can not parse from string value: {}", value);
+                }
+            }
         }
     }
 }
