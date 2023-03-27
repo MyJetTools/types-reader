@@ -106,6 +106,7 @@ impl AttributeParams {
             ParamsType::Single { pos, .. } => Ok(ParamValue {
                 value: self.src[pos.from..pos.to].as_bytes(),
                 token: Some(self.param_type.get_attr_token()),
+                ident: None,
             }),
             ParamsType::Multiple { .. } => Err(syn::Error::new_spanned(
                 self.param_type.get_attr_token(),
@@ -132,6 +133,7 @@ impl AttributeParams {
                         return Ok(ParamValue {
                             value: value.get_str(&self.src.as_str()).as_bytes(),
                             token: Some(self.param_type.get_attr_token()),
+                            ident: None,
                         });
                     }
                 }

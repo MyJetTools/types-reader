@@ -6,6 +6,7 @@ use proc_macro2::TokenStream;
 pub struct ParamValue<'s> {
     pub value: &'s [u8],
     pub token: Option<&'s TokenStream>,
+    pub ident: Option<&'s syn::Ident>,
 }
 
 impl<'s> ParamValue<'s> {
@@ -29,21 +30,10 @@ impl<'s> ParamValue<'s> {
         match TResult::from_str(value) {
             Ok(result) => Ok(result),
             Err(_) => {
-                if let Some(token) = &self.token {
-                    if let Some(err) = err_message {
-                        return Err(syn::Error::new_spanned(token, err));
-                    } else {
-                        return Err(syn::Error::new_spanned(
-                            token,
-                            "Can not parse from string value",
-                        ));
-                    }
+                if let Some(err) = err_message {
+                    return Err(self.to_err(format!("{}", err)));
                 } else {
-                    if let Some(err) = err_message {
-                        panic!("{}", err);
-                    } else {
-                        panic!("Can not parse from string value: {}", value);
-                    }
+                    return Err(self.to_err(format!("Can not parse from string value: {}", value)));
                 }
             }
         }
@@ -55,15 +45,23 @@ impl<'s> ParamValue<'s> {
             "true" => Ok(true),
             "false" => Ok(false),
             _ => {
-                if let Some(token) = &self.token {
-                    return Err(syn::Error::new_spanned(
-                        token,
-                        "Value must be 'true' or 'false'",
-                    ));
-                } else {
-                    panic!("Value must be 'true' or 'false': But value is: {}", value)
-                }
+                return Err(self.to_err(format!(
+                    "Value must be 'true' or 'false'. Found value: {}",
+                    value
+                )));
             }
         }
+    }
+
+    pub fn to_err(&self, msg: String) -> syn::Error {
+        if let Some(token) = self.token {
+            return syn::Error::new_spanned(token, msg);
+        }
+
+        if let Some(ident) = self.ident {
+            return syn::Error::new_spanned(ident, msg);
+        }
+
+        panic!("{}", msg)
     }
 }
