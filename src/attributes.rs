@@ -14,7 +14,6 @@ impl<'s> Attributes<'s> {
         for attr in src {
             let attr = AttributeParams::new(attr)?;
             let name = attr.get_name();
-            println!("Adding attribute {}", name);
             if !attrs.contains_key(&name) {
                 attrs.insert(name.clone(), Vec::new());
             }
