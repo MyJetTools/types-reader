@@ -146,6 +146,28 @@ impl AttributeParams {
         }
     }
 
+    pub fn try_get_named_param<'s>(&'s self, param_name: &str) -> Option<ParamValue<'s>> {
+        match &self.param_type {
+            ParamsType::None { .. } => None,
+            ParamsType::Single { .. } => None,
+            ParamsType::Multiple { pos, .. } => {
+                for (key, value) in pos {
+                    let key = key.get_str(&self.src.as_str());
+
+                    if key == param_name {
+                        return Some(ParamValue {
+                            value: value.get_str(&self.src.as_str()).as_bytes(),
+                            token: Some(self.param_type.get_attr_token()),
+                            ident: None,
+                        });
+                    }
+                }
+
+                None
+            }
+        }
+    }
+
     pub fn has_param(&self, param_name: &str) -> bool {
         if let ParamsType::Multiple { pos, .. } = &self.param_type {
             for (key, _) in pos {
