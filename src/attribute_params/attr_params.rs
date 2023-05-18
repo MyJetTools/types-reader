@@ -139,7 +139,7 @@ impl AttributeParams {
 
                 Err(syn::Error::new_spanned(
                     self.param_type.get_attr_token(),
-                    format!("Attribute has no param with name {}", param_name),
+                    format!("Attribute has no param with name '{}'", param_name),
                 ))
             }
         }
