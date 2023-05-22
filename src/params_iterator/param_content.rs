@@ -2,7 +2,9 @@ use crate::{ObjectsIterator, ParamsIterator};
 
 #[derive(Debug)]
 pub enum ParamContent<'s> {
-    Value(&'s str),
+    String(&'s str),
+    Bool(&'s str),
+    Number(&'s str),
     Object(&'s str),
     Array(&'s str),
     Empty,
@@ -11,16 +13,53 @@ pub enum ParamContent<'s> {
 impl<'s> ParamContent<'s> {
     pub fn as_raw_str(&self) -> &'s str {
         match self {
-            ParamContent::Value(value) => value,
+            ParamContent::String(value) => value,
+            ParamContent::Bool(value) => value,
+            ParamContent::Number(value) => value,
             ParamContent::Array(value) => value,
             ParamContent::Object(value) => value,
             ParamContent::Empty => "",
         }
     }
 
-    pub fn is_value(&self) -> bool {
+    pub fn as_str(&self) -> &str {
         match self {
-            ParamContent::Value(_) => true,
+            ParamContent::String(value) => &value[1..value.len() - 1],
+            ParamContent::Bool(value) => value,
+            ParamContent::Number(value) => value,
+            ParamContent::Array(value) => value,
+            ParamContent::Object(value) => value,
+            ParamContent::Empty => "",
+        }
+    }
+
+    pub fn is_string(&self) -> bool {
+        match self {
+            ParamContent::String(_) => true,
+            ParamContent::Number(_) => false,
+            ParamContent::Bool(_) => false,
+            ParamContent::Array(_) => false,
+            ParamContent::Object(_) => false,
+            ParamContent::Empty => false,
+        }
+    }
+
+    pub fn is_boolean(&self) -> bool {
+        match self {
+            ParamContent::String(_) => false,
+            ParamContent::Number(_) => false,
+            ParamContent::Bool(_) => true,
+            ParamContent::Array(_) => false,
+            ParamContent::Object(_) => false,
+            ParamContent::Empty => false,
+        }
+    }
+
+    pub fn is_number(&self) -> bool {
+        match self {
+            ParamContent::String(_) => false,
+            ParamContent::Number(_) => true,
+            ParamContent::Bool(_) => false,
             ParamContent::Array(_) => false,
             ParamContent::Object(_) => false,
             ParamContent::Empty => false,
@@ -29,7 +68,9 @@ impl<'s> ParamContent<'s> {
 
     pub fn is_array(&self) -> bool {
         match self {
-            ParamContent::Value(_) => false,
+            ParamContent::String(_) => false,
+            ParamContent::Number(_) => false,
+            ParamContent::Bool(_) => false,
             ParamContent::Array(_) => true,
             ParamContent::Object(_) => false,
             ParamContent::Empty => false,
@@ -38,7 +79,9 @@ impl<'s> ParamContent<'s> {
 
     pub fn is_object(&self) -> bool {
         match self {
-            ParamContent::Value(_) => false,
+            ParamContent::String(_) => false,
+            ParamContent::Number(_) => false,
+            ParamContent::Bool(_) => false,
             ParamContent::Array(_) => false,
             ParamContent::Object(_) => true,
             ParamContent::Empty => false,
@@ -47,7 +90,9 @@ impl<'s> ParamContent<'s> {
 
     pub fn is_empty(&self) -> bool {
         match self {
-            ParamContent::Value(_) => false,
+            ParamContent::String(_) => false,
+            ParamContent::Number(_) => false,
+            ParamContent::Bool(_) => false,
             ParamContent::Array(_) => false,
             ParamContent::Object(_) => false,
             ParamContent::Empty => true,
@@ -56,8 +101,20 @@ impl<'s> ParamContent<'s> {
 
     pub fn iterate_array_objects(&self) -> ObjectsIterator {
         match self {
-            ParamContent::Value(value) => {
-                panic!("Can not iterate array objects from value '{}'", value)
+            ParamContent::String(value) => {
+                panic!(
+                    "Can not iterate array objects from string value '{}'",
+                    value
+                )
+            }
+            ParamContent::Number(value) => {
+                panic!(
+                    "Can not iterate array objects from number value '{}'",
+                    value
+                )
+            }
+            ParamContent::Bool(value) => {
+                panic!("Can not iterate array objects from bool value '{}'", value)
             }
             ParamContent::Object(value) => {
                 panic!("Can not iterate array objects from object '{}'", value)
@@ -71,8 +128,14 @@ impl<'s> ParamContent<'s> {
 
     pub fn iterate_object_params(&self) -> ParamsIterator {
         match self {
-            ParamContent::Value(value) => {
-                panic!("Can not iterate param fields from value '{}'", value)
+            ParamContent::String(value) => {
+                panic!("Can not iterate param fields from string value '{}'", value)
+            }
+            ParamContent::Number(value) => {
+                panic!("Can not iterate param fields from number value '{}'", value)
+            }
+            ParamContent::Bool(value) => {
+                panic!("Can not iterate param fields from bool value '{}'", value)
             }
             ParamContent::Object(value) => return ParamsIterator::new(value),
             ParamContent::Array(_) => {

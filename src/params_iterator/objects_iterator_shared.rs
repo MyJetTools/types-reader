@@ -13,7 +13,7 @@ pub trait ObjectsIteratorShared {
         let opener = self.get_opener();
         while let Some(b) = self.get_current_byte() {
             if super::utils::is_closer(opener, b) {
-                return None;
+                return Some(ValueType::Empty);
             }
 
             if super::utils::is_value_separator(b) {
@@ -78,7 +78,12 @@ pub trait ObjectsIteratorShared {
     }
 
     fn skip_separator(&mut self) -> Option<usize> {
+        let opener = self.get_opener();
         while let Some(b) = self.get_current_byte() {
+            if super::utils::is_closer(opener, b) {
+                return None;
+            }
+
             if b >= 32 && !super::utils::is_value_separator(b) {
                 return Some(self.get_pos());
             }
@@ -117,10 +122,12 @@ pub trait ObjectsIteratorShared {
     }
 
     fn find_param_name_end(&mut self) -> Option<usize> {
+        let opener = self.get_opener();
         while let Some(b) = self.get_current_byte() {
             if b <= 32
                 || super::utils::is_param_name_separator(b)
                 || super::utils::is_value_separator(b)
+                || super::utils::is_closer(opener, b)
             {
                 return Some(self.get_pos());
             }

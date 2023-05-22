@@ -44,9 +44,9 @@ impl<'s> ParamsIterator<'s> {
         self.pos += 1;
 
         match &value_type {
-            ValueType::Number => Some((param_name, ParamContent::Value(value))),
-            ValueType::String => Some((param_name, ParamContent::Value(value))),
-            ValueType::Bool => Some((param_name, ParamContent::Value(value))),
+            ValueType::Number => Some((param_name, ParamContent::Number(value))),
+            ValueType::String => Some((param_name, ParamContent::String(value))),
+            ValueType::Bool => Some((param_name, ParamContent::Bool(value))),
             ValueType::Array => Some((param_name, ParamContent::Array(value))),
             ValueType::Object => Some((param_name, ParamContent::Object(value))),
             ValueType::Empty => Some((param_name, ParamContent::Empty)),
@@ -85,6 +85,14 @@ impl<'s> ObjectsIteratorShared for ParamsIterator<'s> {
     }
 }
 
+impl<'s> Iterator for ParamsIterator<'s> {
+    type Item = (&'s str, ParamContent<'s>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.get_next()
+    }
+}
+
 pub enum ValueType {
     Number,
     String,
@@ -105,6 +113,8 @@ impl ValueType {
 
 #[cfg(test)]
 mod tests {
+    use crate::ParamContent;
+
     use super::ParamsIterator;
 
     #[test]
@@ -119,7 +129,7 @@ mod tests {
 
         assert_eq!("param1", param.0);
         assert_eq!("\"My Value\"", param.1.as_raw_str());
-        assert!(param.1.is_value());
+        assert!(param.1.is_string());
 
         let param = iterator.get_next().unwrap();
 
@@ -127,7 +137,7 @@ mod tests {
 
         assert_eq!("param2", param.0);
         assert_eq!("253.2", param.1.as_raw_str());
-        assert!(param.1.is_value());
+        assert!(param.1.is_number());
 
         let param = iterator.get_next().unwrap();
 
@@ -142,7 +152,7 @@ mod tests {
 
         assert_eq!("param3", param.0);
         assert_eq!("true", param.1.as_raw_str());
-        assert!(param.1.is_value());
+        assert!(param.1.is_boolean());
 
         let param = iterator.get_next().unwrap();
 
@@ -164,5 +174,112 @@ mod tests {
         println!("{:?}", param);
 
         assert!(param.is_none());
+    }
+
+    #[test]
+    pub fn test_simple_structure() {
+        let params = r#"(a: "1", b: "2")"#;
+
+        let mut result: Vec<(&'_ str, ParamContent<'_>)> = ParamsIterator::new(params).collect();
+
+        let (key, value) = result.remove(0);
+        assert_eq!("a", key);
+        assert_eq!("\"1\"", value.as_raw_str());
+
+        let (key, value) = result.remove(0);
+        assert_eq!("b", key);
+        assert_eq!("\"2\"", value.as_raw_str());
+    }
+
+    #[test]
+    pub fn test_simple_structure_but_separator_is_semi() {
+        let params = r#"(a: "1"; b: "2")"#;
+
+        let mut result: Vec<(&'_ str, ParamContent<'_>)> = ParamsIterator::new(params).collect();
+
+        let (key, value) = result.remove(0);
+        assert_eq!("a", key);
+        assert_eq!("\"1\"", value.as_raw_str());
+
+        let (key, value) = result.remove(0);
+        assert_eq!("b", key);
+        assert_eq!("\"2\"", value.as_raw_str());
+    }
+
+    #[test]
+    pub fn test_simple_structure_with_eq_as_separator() {
+        let params = r#"(a = "1", b="2")"#;
+
+        let mut result: Vec<(&'_ str, ParamContent<'_>)> = ParamsIterator::new(params).collect();
+
+        let (key, value) = result.remove(0);
+        assert_eq!("a", key);
+        assert_eq!("\"1\"", value.as_raw_str());
+
+        let (key, value) = result.remove(0);
+        assert_eq!("b", key);
+        assert_eq!("\"2\"", value.as_raw_str());
+    }
+
+    #[test]
+    pub fn test_number_and_bool() {
+        let params = r#"(a:1, b=true)"#;
+
+        let mut result: Vec<(&'_ str, ParamContent<'_>)> = ParamsIterator::new(params).collect();
+
+        let (key, value) = result.remove(0);
+        assert_eq!("a", key);
+        assert_eq!("1", value.as_raw_str());
+
+        let (key, value) = result.remove(0);
+        assert_eq!("b", key);
+        assert_eq!("true", value.as_raw_str());
+    }
+
+    #[test]
+    pub fn test_simple_structure_with_bool() {
+        let params = r#"(a: "1", b: true)"#;
+
+        let mut result: Vec<(&'_ str, ParamContent<'_>)> = ParamsIterator::new(params).collect();
+
+        let (key, value) = result.remove(0);
+        assert_eq!("a", key);
+        assert_eq!("\"1\"", value.as_raw_str());
+
+        let (key, value) = result.remove(0);
+        assert_eq!("b", key);
+        assert_eq!("true", value.as_raw_str());
+    }
+
+    #[test]
+    pub fn test_simple_structure_with_default_at_the_end() {
+        let params = r#"(a: "1", default)"#;
+
+        let mut result: Vec<(&'_ str, ParamContent<'_>)> = ParamsIterator::new(params).collect();
+
+        println!("{:?}", result);
+
+        let (key, value) = result.remove(0);
+        assert_eq!("a", key);
+        assert_eq!("\"1\"", value.as_raw_str());
+
+        let (key, value) = result.remove(0);
+        assert_eq!("default", key);
+        assert!(value.is_empty());
+    }
+
+    #[test]
+    pub fn test_simple_structure_with_default_at_the_beginning() {
+        let params = r#"(default, a: "1")"#;
+
+        let mut result: Vec<(&'_ str, ParamContent<'_>)> = ParamsIterator::new(params).collect();
+
+        let (key, value) = result.remove(0);
+        assert_eq!("default", key);
+        assert_eq!("", value.as_raw_str());
+
+        let (key, value) = result.remove(0);
+        assert_eq!("a", key);
+        assert_eq!("\"1\"", value.as_raw_str());
     }
 }
