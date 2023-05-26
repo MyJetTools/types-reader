@@ -55,8 +55,6 @@ impl ParamsListAsTokens {
 
         let mut items = HashMap::new();
 
-        println!("{:#?}", tokens);
-
         while let Some(ident) = get_ident(&mut tokens)? {
             let key: String = ident.to_string();
 
