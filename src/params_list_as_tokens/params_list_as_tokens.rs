@@ -95,7 +95,7 @@ impl ParamsListAsTokens {
             Self::Single { token_stream, .. } => {
                 return Err(syn::Error::new_spanned(
                     token_stream.clone(),
-                    "Does not have named params",
+                    "Names params are required",
                 ));
             }
             Self::Multiple {
