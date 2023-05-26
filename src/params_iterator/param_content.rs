@@ -35,6 +35,35 @@ impl<'s> ParamContent<'s> {
         }
     }
 
+    pub fn as_bool(&self) -> bool {
+        match self {
+            ParamContent::String(value) => {
+                panic!("Can not convert string value '{}' to bool", value)
+            }
+            ParamContent::Bool(value) => {
+                if value == &"true" {
+                    true
+                } else if value == &"false" {
+                    false
+                } else {
+                    panic!("Can not convert string value '{}' to bool", value)
+                }
+            }
+            ParamContent::Number(value) => {
+                panic!("Can not convert number value '{}' to bool", value)
+            }
+            ParamContent::Array(value) => {
+                panic!("Can not convert array value '{}' to bool", value)
+            }
+            ParamContent::Object(value) => {
+                panic!("Can not convert object value '{}' to bool", value)
+            }
+            ParamContent::Empty => {
+                panic!("Can not convert empty value to bool")
+            }
+        }
+    }
+
     pub fn get_value<TResult: FromStr>(
         &'s self,
         err_message: Option<&'static str>,
