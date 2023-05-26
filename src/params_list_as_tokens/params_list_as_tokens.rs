@@ -142,7 +142,28 @@ impl ParamsListAsTokens {
 fn into_ident(token_tree: TokenTree) -> Result<Ident, syn::Error> {
     match token_tree {
         TokenTree::Ident(value) => Ok(value),
-        _ => Err(syn::Error::new_spanned(token_tree, "Expected ident")),
+        TokenTree::Literal(value) => {
+            let str = value.to_string();
+            Err(syn::Error::new_spanned(
+                value,
+                format!("Expected ident but got literal {} ", str),
+            ))
+        }
+        TokenTree::Punct(value) => {
+            let str = value.to_string();
+            Err(syn::Error::new_spanned(
+                value,
+                format!("Expected ident but got punct {} ", str),
+            ))
+        }
+
+        TokenTree::Group(value) => {
+            let str = value.to_string();
+            Err(syn::Error::new_spanned(
+                value,
+                format!("Expected ident but got group {} ", str),
+            ))
+        }
     }
 }
 
