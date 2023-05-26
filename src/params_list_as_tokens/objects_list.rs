@@ -18,6 +18,7 @@ impl ObjectsList {
                         return Err(syn::Error::new_spanned(group, "Expected group of objects"));
                     }
                 }
+                proc_macro2::TokenTree::Punct(_) => {}
                 _ => return Err(syn::Error::new_spanned(itm, "Expected group")),
             }
         }
