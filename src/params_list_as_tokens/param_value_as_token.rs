@@ -4,13 +4,38 @@ use proc_macro2::{Literal, TokenStream};
 
 use syn::Ident;
 
+use crate::{ObjectsList, ParamsListAsTokens};
+
 pub enum ParamValueAsToken {
     None(Ident),
-    SingleValueAsIdent { ident: Ident, value: String },
-    String { literal: Literal, value: String },
-    Number { literal: Literal, value: i64 },
-    Double { literal: Literal, value: String },
-    Bool { literal: Literal, value: bool },
+    SingleValueAsIdent {
+        ident: Ident,
+        value: String,
+    },
+    String {
+        literal: Literal,
+        value: String,
+    },
+    Number {
+        literal: Literal,
+        value: i64,
+    },
+    Double {
+        literal: Literal,
+        value: String,
+    },
+    Bool {
+        literal: Literal,
+        value: bool,
+    },
+    Object {
+        token_stream: TokenStream,
+        value: Box<ParamsListAsTokens>,
+    },
+    ObjectList {
+        token_stream: TokenStream,
+        value: ObjectsList,
+    },
 }
 
 impl ParamValueAsToken {
@@ -74,6 +99,12 @@ impl ParamValueAsToken {
             }
             ParamValueAsToken::Bool { literal, .. } => {
                 syn::Error::new_spanned(literal.clone(), message)
+            }
+            ParamValueAsToken::Object { token_stream, .. } => {
+                syn::Error::new_spanned(token_stream.clone(), message)
+            }
+            ParamValueAsToken::ObjectList { token_stream, .. } => {
+                syn::Error::new_spanned(token_stream.clone(), message)
             }
         }
     }

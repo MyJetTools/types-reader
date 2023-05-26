@@ -1,3 +1,5 @@
+use crate::ObjectsList;
+
 use super::param_value_as_token::ParamValueAsToken;
 use proc_macro2::{Ident, TokenStream, TokenTree};
 use std::collections::{HashMap, VecDeque};
@@ -181,9 +183,39 @@ fn get_ident(items: &mut VecDeque<TokenTree>) -> Result<Option<Ident>, syn::Erro
 fn into_value(ident: Ident, token_tree: TokenTree) -> Result<ParamValueAsToken, syn::Error> {
     match token_tree {
         TokenTree::Ident(value) => Err(syn::Error::new_spanned(value, "Value can not be ident")),
-        TokenTree::Group(value) => {
-            panic!("Not implemented {}", value.to_string())
-        }
+        TokenTree::Group(value) => match value.delimiter() {
+            proc_macro2::Delimiter::Parenthesis => {
+                panic!(
+                    "Not implemented group with Delimiter = Parenthesis. Value {}",
+                    value.to_string()
+                )
+            }
+            proc_macro2::Delimiter::Brace => {
+                let token_stream = value.stream();
+                let value = ParamsListAsTokens::new(token_stream.clone())?;
+                let result = ParamValueAsToken::Object {
+                    token_stream,
+                    value: Box::new(value),
+                };
+                return Ok(result);
+            }
+            proc_macro2::Delimiter::Bracket => {
+                let token_stream = value.stream();
+                let value = ObjectsList::new(token_stream.clone())?;
+                let result = ParamValueAsToken::ObjectList {
+                    token_stream,
+                    value,
+                };
+
+                return Ok(result);
+            }
+            proc_macro2::Delimiter::None => {
+                panic!(
+                    "Not implemented group with Delimiter = None. Value {}",
+                    value.to_string()
+                )
+            }
+        },
         TokenTree::Punct(_) => {
             return Ok(ParamValueAsToken::None(ident));
         }
