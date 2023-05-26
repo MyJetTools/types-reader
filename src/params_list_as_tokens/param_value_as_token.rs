@@ -104,7 +104,7 @@ impl ParamValueAsToken {
         match self {
             Self::Bool { value, .. } => Ok(*value),
 
-            _ => Err(self.throw_error("Type is not string")),
+            _ => Err(self.throw_error("Type is not bool")),
         }
     }
 
@@ -115,7 +115,7 @@ impl ParamValueAsToken {
                 false => Ok(TokenStream::from_str("false").unwrap()),
             },
 
-            _ => Err(self.throw_error("Type is not string")),
+            _ => Err(self.throw_error("Type is not bool")),
         }
     }
 
@@ -123,7 +123,7 @@ impl ParamValueAsToken {
         match self {
             Self::Number { value, .. } => Ok(*value),
 
-            _ => Err(self.throw_error("Type is not string")),
+            _ => Err(self.throw_error("Type is not number")),
         }
     }
 
@@ -131,21 +131,21 @@ impl ParamValueAsToken {
         match self {
             Self::Number { value, .. } => Ok(Literal::i64_unsuffixed(*value)),
 
-            _ => Err(self.throw_error("Type is not string")),
+            _ => Err(self.throw_error("Type is not number")),
         }
     }
 
     pub fn get_double_value(&self) -> Result<f64, syn::Error> {
         match self {
             Self::Double { value, .. } => Ok(value.parse::<f64>().unwrap()),
-            _ => Err(self.throw_error("Type is not string")),
+            _ => Err(self.throw_error("Type is not double value")),
         }
     }
 
     pub fn get_double_value_token(&self) -> Result<TokenStream, syn::Error> {
         match self {
             Self::Double { value, .. } => Ok(TokenStream::from_str(value).unwrap()),
-            _ => Err(self.throw_error("Type is not string")),
+            _ => Err(self.throw_error("Type is not double value")),
         }
     }
 }
