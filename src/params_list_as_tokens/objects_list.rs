@@ -25,4 +25,8 @@ impl ObjectsList {
 
         Ok(Self { objects })
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = &ParamsListAsTokens> {
+        self.objects.iter()
+    }
 }
