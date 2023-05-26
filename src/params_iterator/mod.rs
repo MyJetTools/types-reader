@@ -1,8 +1,10 @@
+mod complex_attr_params;
 mod objects_iterator;
 mod objects_iterator_shared;
 mod param_content;
 mod params_iterator;
 mod utils;
+pub use complex_attr_params::*;
 pub use objects_iterator::*;
 pub use objects_iterator_shared::*;
 pub use param_content::*;

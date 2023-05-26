@@ -1,6 +1,6 @@
 use crate::{ObjectsIterator, ParamsIterator};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ParamContent<'s> {
     String(&'s str),
     Bool(&'s str),
