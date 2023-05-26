@@ -62,7 +62,22 @@ impl ParamsListAsTokens {
 
             let key: String = ident.to_string();
 
-            let value = into_value(ident, tokens.pop_front())?;
+            let value = tokens.pop_front();
+
+            if value.is_none() {
+                return Ok(Self::Single {
+                    token_stream,
+                    value: ParamValueAsToken::None(ident),
+                });
+            }
+
+            let mut value = value.unwrap();
+
+            if let TokenTree::Punct(_) = &value {
+                value = tokens.pop_front().unwrap();
+            }
+
+            let value = into_value(ident, value)?;
             items.insert(key, value);
         }
 
@@ -169,14 +184,8 @@ fn into_ident(token_tree: TokenTree) -> Result<Ident, syn::Error> {
     }
 }
 
-fn into_value(
-    ident: Ident,
-    token_tree: Option<TokenTree>,
-) -> Result<ParamValueAsToken, syn::Error> {
-    if token_tree.is_none() {
-        return Ok(ParamValueAsToken::None(ident));
-    }
-    match token_tree.unwrap() {
+fn into_value(ident: Ident, token_tree: TokenTree) -> Result<ParamValueAsToken, syn::Error> {
+    match token_tree {
         TokenTree::Ident(value) => Err(syn::Error::new_spanned(value, "Value can not be ident")),
         TokenTree::Group(value) => {
             panic!("Not implemented {}", value.to_string())
