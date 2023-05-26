@@ -9,7 +9,11 @@ pub enum ComplexAttrParams<'s> {
 }
 
 impl<'s> ComplexAttrParams<'s> {
-    pub fn new(src: &'s str) -> Self {
+    pub fn new(src: &'s mut String) -> Self {
+        if !src.starts_with('(') {
+            src.insert(0, '(');
+            src.push(')');
+        }
         if src == "()" {
             return Self::None;
         }
