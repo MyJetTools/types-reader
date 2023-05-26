@@ -180,7 +180,7 @@ impl ParamValueAsToken {
         }
     }
 
-    pub fn unwrap_as_object_list(self) -> Result<ObjectsList, syn::Error> {
+    pub fn unwrap_as_object_list(&self) -> Result<&ObjectsList, syn::Error> {
         match self {
             Self::ObjectList { value, .. } => Ok(value),
             _ => Err(self.throw_error("Type should be an object list")),
