@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::{ObjectsIterator, ParamsIterator};
 
 #[derive(Debug, Clone)]
@@ -30,6 +32,23 @@ impl<'s> ParamContent<'s> {
             ParamContent::Array(value) => value,
             ParamContent::Object(value) => value,
             ParamContent::Empty => "",
+        }
+    }
+
+    pub fn get_value<TResult: FromStr>(
+        &'s self,
+        err_message: Option<&'static str>,
+    ) -> Result<TResult, String> {
+        let value = self.as_str();
+        match TResult::from_str(value) {
+            Ok(result) => Ok(result),
+            Err(_) => {
+                if let Some(err) = err_message {
+                    return Err(format!("{}", err));
+                } else {
+                    return Err(format!("Can not parse from string value: {}", value));
+                }
+            }
         }
     }
 
