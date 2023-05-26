@@ -55,11 +55,9 @@ impl ParamsListAsTokens {
 
         let mut items = HashMap::new();
 
-        println!("{:?}", tokens);
+        println!("{:#?}", tokens);
 
-        while let Some(ident) = tokens.pop_front() {
-            let ident = into_ident(ident)?;
-
+        while let Some(ident) = get_ident(&mut tokens)? {
             let key: String = ident.to_string();
 
             let value = tokens.pop_front();
@@ -156,32 +154,30 @@ impl ParamsListAsTokens {
     }
 }
 
-fn into_ident(token_tree: TokenTree) -> Result<Ident, syn::Error> {
-    match token_tree {
-        TokenTree::Ident(value) => Ok(value),
-        TokenTree::Literal(value) => {
-            let str = value.to_string();
-            Err(syn::Error::new_spanned(
-                value,
-                format!("Expected ident but got literal {} ", str),
-            ))
-        }
-        TokenTree::Punct(value) => {
-            let str = value.to_string();
-            Err(syn::Error::new_spanned(
-                value,
-                format!("Expected ident but got punct {} ", str),
-            ))
-        }
+fn get_ident(items: &mut VecDeque<TokenTree>) -> Result<Option<Ident>, syn::Error> {
+    while let Some(token_tree) = items.pop_front() {
+        match token_tree {
+            TokenTree::Ident(value) => return Ok(Some(value)),
+            TokenTree::Literal(value) => {
+                let str = value.to_string();
+                return Err(syn::Error::new_spanned(
+                    value,
+                    format!("Expected ident but got literal {} ", str),
+                ));
+            }
+            TokenTree::Punct(_) => {}
 
-        TokenTree::Group(value) => {
-            let str = value.to_string();
-            Err(syn::Error::new_spanned(
-                value,
-                format!("Expected ident but got group {} ", str),
-            ))
+            TokenTree::Group(value) => {
+                let str = value.to_string();
+                return Err(syn::Error::new_spanned(
+                    value,
+                    format!("Expected ident but got group {} ", str),
+                ));
+            }
         }
     }
+
+    Ok(None)
 }
 
 fn into_value(ident: Ident, token_tree: TokenTree) -> Result<ParamValueAsToken, syn::Error> {
