@@ -152,6 +152,14 @@ impl ParamsListAsTokens {
 
         self.get_named_param(param_name)
     }
+
+    pub fn get_token_stream(&self) -> TokenStream {
+        match self {
+            Self::None(token_stream) => token_stream.clone(),
+            Self::Single { token_stream, .. } => token_stream.clone(),
+            Self::Multiple { token_stream, .. } => token_stream.clone(),
+        }
+    }
 }
 
 fn get_ident(items: &mut VecDeque<TokenTree>) -> Result<Option<Ident>, syn::Error> {
