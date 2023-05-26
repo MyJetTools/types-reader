@@ -179,4 +179,11 @@ impl ParamValueAsToken {
             _ => Err(self.throw_error("Type should be a double value")),
         }
     }
+
+    pub fn unwrap_as_object_list(&self) -> Result<&ObjectsList, syn::Error> {
+        match self {
+            Self::ObjectList { value, .. } => Ok(value),
+            _ => Err(self.throw_error("Type should be an object list")),
+        }
+    }
 }
