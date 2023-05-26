@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use proc_macro2::{Literal, TokenStream};
 
+use rust_extensions::StrOrString;
 use syn::Ident;
 
 use crate::{ObjectsList, ParamsList};
@@ -176,6 +177,34 @@ impl ParamValue {
         match self {
             Self::ObjectList { value, .. } => Ok(value),
             _ => Err(self.throw_error("Type should be an object list")),
+        }
+    }
+
+    pub fn get_value<TResult: FromStr>(
+        &self,
+        err_msg: Option<impl Into<StrOrString<'static>>>,
+    ) -> Result<TResult, syn::Error> {
+        let value = match self {
+            Self::String { value, .. } => StrOrString::create_as_str(value.as_str()),
+            Self::Number { value, .. } => StrOrString::create_as_string(value.to_string()),
+            Self::Double { value, .. } => StrOrString::create_as_string(value.to_string()),
+            Self::Bool { value, .. } => StrOrString::create_as_string(value.to_string()),
+            _ => return Err(self.throw_error("Type should be a string")),
+        };
+
+        let value = value.as_str();
+
+        match value.parse::<TResult>() {
+            Ok(value) => Ok(value),
+            Err(_) => match err_msg {
+                Some(err_msg) => {
+                    let err_msg = err_msg.into();
+                    return Err(self.throw_error(err_msg.as_str()));
+                }
+                None => {
+                    return Err(self.throw_error(format!("Can not parse value: {}", value).as_str()))
+                }
+            },
         }
     }
 }
