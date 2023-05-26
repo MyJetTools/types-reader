@@ -1,4 +1,6 @@
-use proc_macro2::Literal;
+use std::str::FromStr;
+
+use proc_macro2::{Literal, TokenStream};
 
 use syn::Ident;
 
@@ -7,7 +9,7 @@ pub enum ParamValueAsToken {
     SingleValueAsIdent { ident: Ident, value: String },
     String { literal: Literal, value: String },
     Number { literal: Literal, value: i64 },
-    Double { literal: Literal, value: f64 },
+    Double { literal: Literal, value: String },
     Bool { literal: Literal, value: bool },
 }
 
@@ -21,9 +23,9 @@ impl ParamValueAsToken {
         }
 
         if value.contains('.') {
-            let value = value.parse::<f64>();
-            match value {
-                Ok(value) => return Ok(Self::Double { literal, value }),
+            let result = value.parse::<f64>();
+            match result {
+                Ok(_) => return Ok(Self::Double { literal, value }),
                 Err(_) => {
                     return Err(syn::Error::new_spanned(
                         literal,
@@ -47,8 +49,7 @@ impl ParamValueAsToken {
             });
         }
 
-        let value = value.parse::<i64>();
-        match value {
+        match value.parse::<i64>() {
             Ok(value) => return Ok(Self::Number { literal, value }),
             Err(_) => {
                 return Err(syn::Error::new_spanned(literal, "Unknown type"));
@@ -92,9 +93,27 @@ impl ParamValueAsToken {
         }
     }
 
+    pub fn get_str_value_token(&self) -> Result<TokenStream, syn::Error> {
+        match self {
+            Self::String { value, .. } => Ok(quote::quote! { #value }),
+            _ => Err(self.throw_error("Type is not string")),
+        }
+    }
+
     pub fn get_bool_value(&self) -> Result<bool, syn::Error> {
         match self {
             Self::Bool { value, .. } => Ok(*value),
+
+            _ => Err(self.throw_error("Type is not string")),
+        }
+    }
+
+    pub fn get_bool_value_token(&self) -> Result<TokenStream, syn::Error> {
+        match self {
+            Self::Bool { value, .. } => match value {
+                true => Ok(TokenStream::from_str("true").unwrap()),
+                false => Ok(TokenStream::from_str("false").unwrap()),
+            },
 
             _ => Err(self.throw_error("Type is not string")),
         }
@@ -108,9 +127,24 @@ impl ParamValueAsToken {
         }
     }
 
+    pub fn get_number_value_token(&self) -> Result<Literal, syn::Error> {
+        match self {
+            Self::Number { value, .. } => Ok(Literal::i64_unsuffixed(*value)),
+
+            _ => Err(self.throw_error("Type is not string")),
+        }
+    }
+
     pub fn get_double_value(&self) -> Result<f64, syn::Error> {
         match self {
-            Self::Double { value, .. } => Ok(*value),
+            Self::Double { value, .. } => Ok(value.parse::<f64>().unwrap()),
+            _ => Err(self.throw_error("Type is not string")),
+        }
+    }
+
+    pub fn get_double_value_token(&self) -> Result<TokenStream, syn::Error> {
+        match self {
+            Self::Double { value, .. } => Ok(TokenStream::from_str(value).unwrap()),
             _ => Err(self.throw_error("Type is not string")),
         }
     }
