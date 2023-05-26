@@ -4,9 +4,9 @@ use proc_macro2::{Literal, TokenStream};
 
 use syn::Ident;
 
-use crate::{ObjectsList, ParamsListAsTokens};
+use crate::{ObjectsList, ParamsList};
 
-pub enum ParamValueAsToken {
+pub enum ParamValue {
     None(Ident),
     SingleValueAsIdent {
         ident: Ident,
@@ -30,7 +30,7 @@ pub enum ParamValueAsToken {
     },
     Object {
         token_stream: TokenStream,
-        value: Box<ParamsListAsTokens>,
+        value: Box<ParamsList>,
     },
     ObjectList {
         token_stream: TokenStream,
@@ -38,7 +38,7 @@ pub enum ParamValueAsToken {
     },
 }
 
-impl ParamValueAsToken {
+impl ParamValue {
     pub fn from_literal(literal: Literal) -> Result<Self, syn::Error> {
         let value = literal.to_string();
 
@@ -84,26 +84,18 @@ impl ParamValueAsToken {
 
     pub fn throw_error(&self, message: &str) -> syn::Error {
         match self {
-            ParamValueAsToken::None(ident) => syn::Error::new_spanned(ident.clone(), message),
-            ParamValueAsToken::SingleValueAsIdent { ident, .. } => {
+            Self::None(ident) => syn::Error::new_spanned(ident.clone(), message),
+            Self::SingleValueAsIdent { ident, .. } => {
                 syn::Error::new_spanned(ident.clone(), message)
             }
-            ParamValueAsToken::String { literal, .. } => {
-                syn::Error::new_spanned(literal.clone(), message)
-            }
-            ParamValueAsToken::Number { literal, .. } => {
-                syn::Error::new_spanned(literal.clone(), message)
-            }
-            ParamValueAsToken::Double { literal, .. } => {
-                syn::Error::new_spanned(literal.clone(), message)
-            }
-            ParamValueAsToken::Bool { literal, .. } => {
-                syn::Error::new_spanned(literal.clone(), message)
-            }
-            ParamValueAsToken::Object { token_stream, .. } => {
+            Self::String { literal, .. } => syn::Error::new_spanned(literal.clone(), message),
+            Self::Number { literal, .. } => syn::Error::new_spanned(literal.clone(), message),
+            Self::Double { literal, .. } => syn::Error::new_spanned(literal.clone(), message),
+            Self::Bool { literal, .. } => syn::Error::new_spanned(literal.clone(), message),
+            Self::Object { token_stream, .. } => {
                 syn::Error::new_spanned(token_stream.clone(), message)
             }
-            ParamValueAsToken::ObjectList { token_stream, .. } => {
+            Self::ObjectList { token_stream, .. } => {
                 syn::Error::new_spanned(token_stream.clone(), message)
             }
         }

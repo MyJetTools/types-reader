@@ -1,28 +1,22 @@
 use crate::ObjectsList;
 
-use super::param_value_as_token::ParamValueAsToken;
+use super::ParamValue;
 use proc_macro2::{Ident, TokenStream, TokenTree};
 use std::collections::{HashMap, VecDeque};
 
-pub enum ParamData {
-    None(TokenStream),
-    Single(ParamValueAsToken),
-    Multiple(HashMap<String, ParamValueAsToken>),
-}
-
-pub enum ParamsListAsTokens {
+pub enum ParamsList {
     None(TokenStream),
     Single {
         token_stream: TokenStream,
-        value: ParamValueAsToken,
+        value: ParamValue,
     },
     Multiple {
         token_stream: TokenStream,
-        items: HashMap<String, ParamValueAsToken>,
+        items: HashMap<String, ParamValue>,
     },
 }
 
-impl ParamsListAsTokens {
+impl ParamsList {
     pub fn new(token_stream: TokenStream) -> Result<Self, syn::Error> {
         let mut tokens: VecDeque<TokenTree> = token_stream.clone().into_iter().collect();
 
@@ -40,7 +34,7 @@ impl ParamsListAsTokens {
                     let value = ident.to_string();
                     return Ok(Self::Single {
                         token_stream,
-                        value: ParamValueAsToken::SingleValueAsIdent { ident, value },
+                        value: ParamValue::SingleValueAsIdent { ident, value },
                     });
                 }
                 TokenTree::Punct(_) => {
@@ -49,7 +43,7 @@ impl ParamsListAsTokens {
                 TokenTree::Literal(literal) => {
                     return Ok(Self::Single {
                         token_stream,
-                        value: ParamValueAsToken::from_literal(literal)?,
+                        value: ParamValue::from_literal(literal)?,
                     });
                 }
             }
@@ -65,7 +59,7 @@ impl ParamsListAsTokens {
             if value.is_none() {
                 return Ok(Self::Single {
                     token_stream,
-                    value: ParamValueAsToken::None(ident),
+                    value: ParamValue::None(ident),
                 });
             }
 
@@ -85,7 +79,7 @@ impl ParamsListAsTokens {
         })
     }
 
-    pub fn get_single_param(&self) -> Result<&ParamValueAsToken, syn::Error> {
+    pub fn get_single_param(&self) -> Result<&ParamValue, syn::Error> {
         match self {
             Self::None(token_stream) => Err(syn::Error::new_spanned(
                 token_stream.clone(),
@@ -101,7 +95,7 @@ impl ParamsListAsTokens {
         }
     }
 
-    pub fn get_named_param(&self, param_name: &str) -> Result<&ParamValueAsToken, syn::Error> {
+    pub fn get_named_param(&self, param_name: &str) -> Result<&ParamValue, syn::Error> {
         match self {
             Self::None(token_stream) => Err(syn::Error::new_spanned(
                 token_stream.clone(),
@@ -128,7 +122,7 @@ impl ParamsListAsTokens {
         }
     }
 
-    pub fn try_get_named_param(&self, param_name: &str) -> Option<&ParamValueAsToken> {
+    pub fn try_get_named_param(&self, param_name: &str) -> Option<&ParamValue> {
         match self {
             Self::Multiple { items, .. } => items.get(param_name),
             _ => None,
@@ -142,10 +136,7 @@ impl ParamsListAsTokens {
         }
     }
 
-    pub fn get_from_single_or_named(
-        &self,
-        param_name: &str,
-    ) -> Result<&ParamValueAsToken, syn::Error> {
+    pub fn get_from_single_or_named(&self, param_name: &str) -> Result<&ParamValue, syn::Error> {
         if let Ok(result) = self.get_single_param() {
             return Ok(result);
         }
@@ -188,7 +179,7 @@ fn get_ident(items: &mut VecDeque<TokenTree>) -> Result<Option<Ident>, syn::Erro
     Ok(None)
 }
 
-fn into_value(ident: Ident, token_tree: TokenTree) -> Result<ParamValueAsToken, syn::Error> {
+fn into_value(ident: Ident, token_tree: TokenTree) -> Result<ParamValue, syn::Error> {
     match token_tree {
         TokenTree::Ident(value) => Err(syn::Error::new_spanned(value, "Value can not be ident")),
         TokenTree::Group(value) => match value.delimiter() {
@@ -200,8 +191,8 @@ fn into_value(ident: Ident, token_tree: TokenTree) -> Result<ParamValueAsToken, 
             }
             proc_macro2::Delimiter::Brace => {
                 let token_stream = value.stream();
-                let value = ParamsListAsTokens::new(token_stream.clone())?;
-                let result = ParamValueAsToken::Object {
+                let value = ParamsList::new(token_stream.clone())?;
+                let result = ParamValue::Object {
                     token_stream,
                     value: Box::new(value),
                 };
@@ -210,7 +201,7 @@ fn into_value(ident: Ident, token_tree: TokenTree) -> Result<ParamValueAsToken, 
             proc_macro2::Delimiter::Bracket => {
                 let token_stream = value.stream();
                 let value = ObjectsList::new(token_stream.clone())?;
-                let result = ParamValueAsToken::ObjectList {
+                let result = ParamValue::ObjectList {
                     token_stream,
                     value,
                 };
@@ -225,10 +216,10 @@ fn into_value(ident: Ident, token_tree: TokenTree) -> Result<ParamValueAsToken, 
             }
         },
         TokenTree::Punct(_) => {
-            return Ok(ParamValueAsToken::None(ident));
+            return Ok(ParamValue::None(ident));
         }
         TokenTree::Literal(value) => {
-            return Ok(ParamValueAsToken::from_literal(value)?);
+            return Ok(ParamValue::from_literal(value)?);
         }
     }
 }

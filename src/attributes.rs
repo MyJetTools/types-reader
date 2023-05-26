@@ -1,9 +1,11 @@
 use std::collections::HashMap;
 
-use crate::attribute_params::{AttributeParams, ParamValue};
+use quote::ToTokens;
+
+use crate::{ParamValue, ParamsList};
 
 pub struct Attributes<'s> {
-    attrs: HashMap<String, Vec<AttributeParams>>,
+    attrs: HashMap<String, Vec<ParamsList>>,
     root: &'s syn::DeriveInput,
 }
 
@@ -12,18 +14,43 @@ impl<'s> Attributes<'s> {
         let mut attrs = HashMap::new();
 
         for attr in src {
-            let attr = AttributeParams::new(attr)?;
-            let name = attr.get_name();
-            if !attrs.contains_key(&name) {
-                attrs.insert(name.clone(), Vec::new());
+            let token: proc_macro2::TokenStream = attr.to_token_stream();
+
+            let mut tokens = token.into_iter();
+
+            let ident = tokens.next().unwrap();
+
+            let name = ident.to_string();
+
+            let braces_token = tokens.next().unwrap();
+
+            match braces_token {
+                proc_macro2::TokenTree::Group(value) => {
+                    let token = value.to_token_stream();
+
+                    let attr = ParamsList::new(token)?;
+
+                    if !attrs.contains_key(&name) {
+                        attrs.insert(name.clone(), Vec::new());
+                    }
+                    attrs.get_mut(name.as_str()).unwrap().push(attr);
+                }
+                proc_macro2::TokenTree::Ident(value) => {
+                    panic!("Somehow we got Ident here: {}", value.to_string());
+                }
+                proc_macro2::TokenTree::Punct(value) => {
+                    panic!("Somehow we got Punct here: {}", value.to_string());
+                }
+                proc_macro2::TokenTree::Literal(value) => {
+                    panic!("Somehow we got Literal here: {}", value.to_string());
+                }
             }
-            attrs.get_mut(name.as_str()).unwrap().push(attr);
         }
 
         Ok(Self { root, attrs })
     }
 
-    pub fn get_attr(&'s self, attr_name: &str) -> Result<&'s AttributeParams, syn::Error> {
+    pub fn get_attr(&'s self, attr_name: &str) -> Result<&'s ParamsList, syn::Error> {
         let attr = self.attrs.get(attr_name);
 
         if attr.is_none() {
@@ -36,13 +63,13 @@ impl<'s> Attributes<'s> {
         Ok(attr.unwrap().get(0).unwrap())
     }
 
-    pub fn try_get_attr(&'s self, attr_name: &str) -> Option<&'s AttributeParams> {
+    pub fn try_get_attr(&'s self, attr_name: &str) -> Option<&'s ParamsList> {
         let attr = self.attrs.get(attr_name)?;
 
         Some(attr.get(0).unwrap())
     }
 
-    pub fn get_attrs(&'s self, attr_name: &str) -> Result<&'s Vec<AttributeParams>, syn::Error> {
+    pub fn get_attrs(&'s self, attr_name: &str) -> Result<&'s Vec<ParamsList>, syn::Error> {
         let attr = self.attrs.get(attr_name);
 
         if attr.is_none() {
@@ -55,7 +82,7 @@ impl<'s> Attributes<'s> {
         Ok(attr.unwrap())
     }
 
-    pub fn try_get_attrs(&'s self, attr_name: &str) -> Option<&'s Vec<AttributeParams>> {
+    pub fn try_get_attrs(&'s self, attr_name: &str) -> Option<&'s Vec<ParamsList>> {
         self.attrs.get(attr_name)
     }
 
@@ -63,7 +90,7 @@ impl<'s> Attributes<'s> {
         &'s self,
         attr_name: &str,
         param_name: &str,
-    ) -> Result<ParamValue, syn::Error> {
+    ) -> Result<&'s ParamValue, syn::Error> {
         let attr = self.get_attr(attr_name)?;
         attr.get_named_param(param_name)
     }
@@ -72,7 +99,7 @@ impl<'s> Attributes<'s> {
         &'s self,
         attr_name: &str,
         param_name: &str,
-    ) -> Result<ParamValue, syn::Error> {
+    ) -> Result<&'s ParamValue, syn::Error> {
         let attr = self.get_attr(attr_name)?;
 
         attr.get_from_single_or_named(param_name)
@@ -106,13 +133,11 @@ impl<'s> Attributes<'s> {
         false
     }
 
-    pub fn remove(&'s mut self, name: &str) -> Option<Vec<AttributeParams>> {
+    pub fn remove(&'s mut self, name: &str) -> Option<Vec<ParamsList>> {
         self.attrs.remove(name)
     }
 
-    pub fn get_attr_names(
-        &'s self,
-    ) -> std::collections::hash_map::Keys<String, Vec<AttributeParams>> {
+    pub fn get_attr_names(&'s self) -> std::collections::hash_map::Keys<String, Vec<ParamsList>> {
         self.attrs.keys()
     }
 }
