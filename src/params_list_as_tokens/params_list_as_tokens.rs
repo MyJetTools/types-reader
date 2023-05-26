@@ -108,7 +108,7 @@ impl ParamsListAsTokens {
             Self::Single { token_stream, .. } => {
                 return Err(syn::Error::new_spanned(
                     token_stream.clone(),
-                    "Names params are required",
+                    "Named params are required",
                 ));
             }
             Self::Multiple {
@@ -119,7 +119,7 @@ impl ParamsListAsTokens {
                 None => {
                     return Err(syn::Error::new_spanned(
                         token_stream.clone(),
-                        "Attribute has multiple params",
+                        format!("Param '{}' is required", param_name),
                     ));
                 }
             },
