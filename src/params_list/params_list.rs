@@ -100,6 +100,14 @@ impl ParamsList {
         }
     }
 
+    pub fn try_get_single_param(&self) -> Option<&ParamValue> {
+        match self {
+            Self::None(_) => None,
+            Self::Single { value, .. } => Some(value),
+            Self::Multiple { .. } => None,
+        }
+    }
+
     pub fn get_named_param(&self, param_name: &str) -> Result<&ParamValue, syn::Error> {
         match self {
             Self::None(token_stream) => Err(syn::Error::new_spanned(
