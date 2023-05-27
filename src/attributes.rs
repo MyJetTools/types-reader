@@ -122,7 +122,6 @@ impl<'s> Attributes<'s> {
 
 fn extract_attr_name_and_content(attr: &syn::Attribute) -> (String, proc_macro2::TokenStream) {
     let token: proc_macro2::TokenStream = attr.to_token_stream();
-    println!("Attr: {:#?}", token);
 
     let token = get_inside_attr(token);
 
@@ -167,10 +166,7 @@ fn get_inside_attr(token: TokenStream) -> TokenStream {
 
     match braces_token {
         proc_macro2::TokenTree::Group(value) => {
-            let token = value.stream();
-
-            println!("Extracted token: {:?}", token.to_string());
-            return token;
+            return value.stream();
         }
         proc_macro2::TokenTree::Ident(value) => {
             panic!("Somehow we got Ident here: {}", value.to_string());
