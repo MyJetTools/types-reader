@@ -168,6 +168,8 @@ fn get_inside_attr(token: TokenStream) -> TokenStream {
     match braces_token {
         proc_macro2::TokenTree::Group(value) => {
             let token = value.to_token_stream();
+
+            println!("Extracted token: {:?}", token.to_string());
             return token;
         }
         proc_macro2::TokenTree::Ident(value) => {
