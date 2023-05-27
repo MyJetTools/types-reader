@@ -27,7 +27,8 @@ impl ParamsList {
         if tokens.len() == 1 {
             let token = tokens.pop_front().unwrap();
             match token {
-                TokenTree::Group(_) => {
+                TokenTree::Group(el) => {
+                    println!("Group: {}", el.to_string());
                     panic!("Single element can not be group")
                 }
                 TokenTree::Ident(ident) => {
@@ -37,8 +38,9 @@ impl ParamsList {
                         value: ParamValue::SingleValueAsIdent { ident, value },
                     });
                 }
-                TokenTree::Punct(_) => {
-                    panic!("Single element can not be separator");
+                TokenTree::Punct(el) => {
+                    println!("Punct: {:?}", el.to_string());
+                    panic!("Single element can not be punct");
                 }
                 TokenTree::Literal(literal) => {
                     return Ok(Self::Single {
