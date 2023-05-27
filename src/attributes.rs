@@ -16,6 +16,8 @@ impl<'s> Attributes<'s> {
         for attr in src {
             let token: proc_macro2::TokenStream = attr.to_token_stream();
 
+            println!("Attr: {:#?}", token.to_string());
+
             let mut tokens = token.into_iter();
 
             let ident = tokens.next().unwrap();
