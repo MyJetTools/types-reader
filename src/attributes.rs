@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use proc_macro2::TokenStream;
 use quote::ToTokens;
 
 use crate::{ParamValue, ParamsList};
@@ -14,39 +15,14 @@ impl<'s> Attributes<'s> {
         let mut attrs = HashMap::new();
 
         for attr in src {
-            let token: proc_macro2::TokenStream = attr.to_token_stream();
+            let (attr_name, token_stream) = extract_attr_name_and_content(attr);
 
-            println!("Attr: {:#?}", token.to_string());
+            let attr = ParamsList::new(token_stream)?;
 
-            let mut tokens = token.into_iter();
-
-            let ident = tokens.next().unwrap();
-
-            let name = ident.to_string();
-
-            let braces_token = tokens.next().unwrap();
-
-            match braces_token {
-                proc_macro2::TokenTree::Group(value) => {
-                    let token = value.to_token_stream();
-
-                    let attr = ParamsList::new(token)?;
-
-                    if !attrs.contains_key(&name) {
-                        attrs.insert(name.clone(), Vec::new());
-                    }
-                    attrs.get_mut(name.as_str()).unwrap().push(attr);
-                }
-                proc_macro2::TokenTree::Ident(value) => {
-                    panic!("Somehow we got Ident here: {}", value.to_string());
-                }
-                proc_macro2::TokenTree::Punct(value) => {
-                    panic!("Somehow we got Punct here: {}", value.to_string());
-                }
-                proc_macro2::TokenTree::Literal(value) => {
-                    panic!("Somehow we got Literal here: {}", value.to_string());
-                }
+            if !attrs.contains_key(&attr_name) {
+                attrs.insert(attr_name.clone(), Vec::new());
             }
+            attrs.get_mut(attr_name.as_str()).unwrap().push(attr);
         }
 
         Ok(Self { root, attrs })
@@ -141,5 +117,67 @@ impl<'s> Attributes<'s> {
 
     pub fn get_attr_names(&'s self) -> std::collections::hash_map::Keys<String, Vec<ParamsList>> {
         self.attrs.keys()
+    }
+}
+
+fn extract_attr_name_and_content(attr: &syn::Attribute) -> (String, proc_macro2::TokenStream) {
+    let token: proc_macro2::TokenStream = attr.to_token_stream();
+    println!("Attr: {:#?}", token);
+
+    let token = get_inside_attr(token);
+
+    let mut tokens = token.into_iter();
+
+    let ident = tokens.next().unwrap();
+
+    let attr_name = ident.to_string();
+
+    let braces_token = tokens.next().unwrap();
+
+    match braces_token {
+        proc_macro2::TokenTree::Group(value) => {
+            let token = value.to_token_stream();
+
+            return (attr_name, token);
+        }
+        proc_macro2::TokenTree::Ident(value) => {
+            panic!("Somehow we got Ident here: {}", value.to_string());
+        }
+        proc_macro2::TokenTree::Punct(value) => {
+            panic!("Somehow we got Punct here: {}", value.to_string());
+        }
+        proc_macro2::TokenTree::Literal(value) => {
+            panic!("Somehow we got Literal here: {}", value.to_string());
+        }
+    }
+}
+
+fn get_inside_attr(token: TokenStream) -> TokenStream {
+    let mut tokens = token.into_iter();
+
+    let ident = tokens.next().unwrap();
+
+    let name = ident.to_string();
+
+    if name != "#" {
+        panic!("Expected '#'");
+    }
+
+    let braces_token = tokens.next().unwrap();
+
+    match braces_token {
+        proc_macro2::TokenTree::Group(value) => {
+            let token = value.to_token_stream();
+            return token;
+        }
+        proc_macro2::TokenTree::Ident(value) => {
+            panic!("Somehow we got Ident here: {}", value.to_string());
+        }
+        proc_macro2::TokenTree::Punct(value) => {
+            panic!("Somehow we got Punct here: {}", value.to_string());
+        }
+        proc_macro2::TokenTree::Literal(value) => {
+            panic!("Somehow we got Literal here: {}", value.to_string());
+        }
     }
 }
