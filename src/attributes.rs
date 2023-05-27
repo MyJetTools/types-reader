@@ -136,7 +136,7 @@ fn extract_attr_name_and_content(attr: &syn::Attribute) -> (String, proc_macro2:
 
     match braces_token {
         proc_macro2::TokenTree::Group(value) => {
-            let token = value.to_token_stream();
+            let token = value.stream();
 
             return (attr_name, token);
         }
