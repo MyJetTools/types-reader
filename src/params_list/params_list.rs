@@ -81,6 +81,9 @@ impl ParamsList {
         })
     }
 
+    pub fn create_empty(token_stream: TokenStream) -> Self {
+        Self::None(token_stream)
+    }
     pub fn get_single_param(&self) -> Result<&ParamValue, syn::Error> {
         match self {
             Self::None(token_stream) => Err(syn::Error::new_spanned(

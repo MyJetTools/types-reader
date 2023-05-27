@@ -17,12 +17,21 @@ impl<'s> Attributes<'s> {
         for attr in src {
             let (attr_name, token_stream) = extract_attr_name_and_content(attr);
 
-            let attr = ParamsList::new(token_stream)?;
+            let attr_name_as_str = attr_name.to_string();
 
-            if !attrs.contains_key(&attr_name) {
-                attrs.insert(attr_name.clone(), Vec::new());
+            let param_list = if let Some(token_stream) = token_stream {
+                ParamsList::new(token_stream)?
+            } else {
+                ParamsList::create_empty(attr_name)
+            };
+
+            if !attrs.contains_key(&attr_name_as_str) {
+                attrs.insert(attr_name_as_str.clone(), Vec::new());
             }
-            attrs.get_mut(attr_name.as_str()).unwrap().push(attr);
+            attrs
+                .get_mut(attr_name_as_str.as_str())
+                .unwrap()
+                .push(param_list);
         }
 
         Ok(Self { root, attrs })
@@ -120,7 +129,9 @@ impl<'s> Attributes<'s> {
     }
 }
 
-fn extract_attr_name_and_content(attr: &syn::Attribute) -> (String, proc_macro2::TokenStream) {
+fn extract_attr_name_and_content(
+    attr: &syn::Attribute,
+) -> (proc_macro2::TokenStream, Option<proc_macro2::TokenStream>) {
     let token: proc_macro2::TokenStream = attr.to_token_stream();
 
     let token = get_inside_attr(token);
@@ -129,15 +140,17 @@ fn extract_attr_name_and_content(attr: &syn::Attribute) -> (String, proc_macro2:
 
     let ident = tokens.next().unwrap();
 
-    let attr_name = ident.to_string();
+    let braces_token = tokens.next();
 
-    let braces_token = tokens.next().unwrap();
+    if braces_token.is_none() {
+        return (ident.into_token_stream(), None);
+    }
 
-    match braces_token {
+    match braces_token.unwrap() {
         proc_macro2::TokenTree::Group(value) => {
             let token = value.stream();
 
-            return (attr_name, token);
+            return (ident.into_token_stream(), Some(token));
         }
         proc_macro2::TokenTree::Ident(value) => {
             panic!("Somehow we got Ident here: {}", value.to_string());
