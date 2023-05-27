@@ -207,4 +207,16 @@ impl ParamValue {
             },
         }
     }
+
+    pub fn get_any_value_as_string(&self) -> Result<StrOrString, syn::Error> {
+        let result = match self {
+            Self::String { value, .. } => StrOrString::create_as_str(value.as_str()),
+            Self::Number { value, .. } => StrOrString::create_as_string(value.to_string()),
+            Self::Double { value, .. } => StrOrString::create_as_string(value.to_string()),
+            Self::Bool { value, .. } => StrOrString::create_as_string(value.to_string()),
+            _ => return Err(self.throw_error("Type should be a string")),
+        };
+
+        Ok(result)
+    }
 }
