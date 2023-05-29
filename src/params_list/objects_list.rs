@@ -3,22 +3,6 @@ use quote::ToTokens;
 
 use crate::{ParamValue, ParamsList};
 
-pub struct ObjectsList {
-    pub objects: Vec<ParamsList>,
-}
-
-impl ObjectsList {
-    pub fn new() -> Self {
-        Self {
-            objects: Vec::new(),
-        }
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &ParamsList> {
-        self.objects.iter()
-    }
-}
-
 pub fn get_list_of_elements(token_stream: TokenStream) -> Result<ParamValue, syn::Error> {
     let mut result = None;
     for itm in token_stream.clone() {
@@ -28,7 +12,7 @@ pub fn get_list_of_elements(token_stream: TokenStream) -> Result<ParamValue, syn
                     if result.is_none() {
                         result = Some(ParamValue::ObjectList {
                             token_stream: group.clone().into_token_stream(),
-                            value: ObjectsList::new(),
+                            value: Vec::new(),
                         })
                     }
 
@@ -36,7 +20,7 @@ pub fn get_list_of_elements(token_stream: TokenStream) -> Result<ParamValue, syn
 
                     match result {
                         ParamValue::ObjectList { value, .. } => {
-                            value.objects.push(ParamsList::new(group.stream())?)
+                            value.push(ParamsList::new(group.stream())?)
                         }
                         _ => {
                             return Err(syn::Error::new_spanned(

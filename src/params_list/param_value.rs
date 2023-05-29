@@ -5,7 +5,7 @@ use proc_macro2::{Literal, TokenStream};
 use rust_extensions::StrOrString;
 use syn::Ident;
 
-use crate::{ObjectsList, ParamsList};
+use crate::ParamsList;
 
 pub enum ParamValue {
     None(Ident),
@@ -35,7 +35,7 @@ pub enum ParamValue {
     },
     ObjectList {
         token_stream: TokenStream,
-        value: ObjectsList,
+        value: Vec<ParamsList>,
     },
     VecOfString {
         token_stream: TokenStream,
@@ -181,7 +181,7 @@ impl ParamValue {
         }
     }
 
-    pub fn unwrap_as_object_list(&self) -> Result<&ObjectsList, syn::Error> {
+    pub fn unwrap_as_object_list(&self) -> Result<&Vec<ParamsList>, syn::Error> {
         match self {
             Self::ObjectList { value, .. } => Ok(value),
             _ => Err(self.throw_error("Value should be an object list")),
