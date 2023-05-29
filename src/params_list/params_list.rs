@@ -1,4 +1,4 @@
-use crate::ObjectsList;
+use crate::get_list_of_elements;
 
 use super::ParamValue;
 use proc_macro2::{Ident, TokenStream, TokenTree};
@@ -213,13 +213,9 @@ fn into_value(ident: Ident, token_tree: TokenTree) -> Result<ParamValue, syn::Er
             }
             proc_macro2::Delimiter::Bracket => {
                 let token_stream = value.stream();
-                let value = ObjectsList::new(token_stream.clone())?;
-                let result = ParamValue::ObjectList {
-                    token_stream,
-                    value,
-                };
+                let value = get_list_of_elements(token_stream.clone())?;
 
-                return Ok(result);
+                return Ok(value);
             }
             proc_macro2::Delimiter::None => {
                 panic!(

@@ -37,6 +37,10 @@ pub enum ParamValue {
         token_stream: TokenStream,
         value: ObjectsList,
     },
+    VecOfString {
+        token_stream: TokenStream,
+        value: Vec<String>,
+    },
 }
 
 impl ParamValue {
@@ -97,6 +101,10 @@ impl ParamValue {
                 syn::Error::new_spanned(token_stream.clone(), message)
             }
             Self::ObjectList { token_stream, .. } => {
+                syn::Error::new_spanned(token_stream.clone(), message)
+            }
+
+            Self::VecOfString { token_stream, .. } => {
                 syn::Error::new_spanned(token_stream.clone(), message)
             }
         }
@@ -176,7 +184,14 @@ impl ParamValue {
     pub fn unwrap_as_object_list(&self) -> Result<&ObjectsList, syn::Error> {
         match self {
             Self::ObjectList { value, .. } => Ok(value),
-            _ => Err(self.throw_error("Type should be an object list")),
+            _ => Err(self.throw_error("Value should be an object list")),
+        }
+    }
+
+    pub fn unwrap_as_vec_of_string(&self) -> Result<&Vec<String>, syn::Error> {
+        match self {
+            Self::VecOfString { value, .. } => Ok(value),
+            _ => Err(self.throw_error("Value should be a vector of string")),
         }
     }
 
