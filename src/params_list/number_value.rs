@@ -54,4 +54,8 @@ impl NumberValue {
     pub fn as_u8(&self) -> u8 {
         self.value as u8
     }
+
+    pub fn throw_error(&self, message: &str) -> syn::Error {
+        syn::Error::new_spanned(self.as_literal(), message)
+    }
 }

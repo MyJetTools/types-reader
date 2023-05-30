@@ -37,6 +37,9 @@ impl StringValue {
             )),
         }
     }
+    pub fn throw_error(&self, message: &str) -> syn::Error {
+        syn::Error::new_spanned(self.as_literal(), message)
+    }
 }
 
 impl<'s> Into<&'s str> for &'s StringValue {

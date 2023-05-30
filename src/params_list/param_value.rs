@@ -71,20 +71,16 @@ impl ParamValue {
     pub fn throw_error(&self, message: &str) -> syn::Error {
         match self {
             Self::None(ident) => syn::Error::new_spanned(ident.clone(), message),
-            Self::SingleValueAsIdent(value) => syn::Error::new_spanned(value.get_ident(), message),
-            Self::String(value) => syn::Error::new_spanned(value.as_literal(), message),
-            Self::Number(value) => syn::Error::new_spanned(value.as_literal(), message),
-            Self::Double(value) => syn::Error::new_spanned(value.as_literal(), message),
-            Self::Bool(value) => syn::Error::new_spanned(value.as_literal(), message),
-            Self::Object { token_stream, .. } => {
-                syn::Error::new_spanned(token_stream.clone(), message)
-            }
-            Self::ObjectList { token_stream, .. } => {
-                syn::Error::new_spanned(token_stream.clone(), message)
-            }
+            Self::SingleValueAsIdent(value) => value.throw_error(message),
+            Self::String(value) => value.throw_error(message),
+            Self::Number(value) => value.throw_error(message),
+            Self::Double(value) => value.throw_error(message),
+            Self::Bool(value) => value.throw_error(message),
+            Self::Object { token_stream, .. } => syn::Error::new_spanned(token_stream, message),
+            Self::ObjectList { token_stream, .. } => syn::Error::new_spanned(token_stream, message),
 
             Self::VecOfString { token_stream, .. } => {
-                syn::Error::new_spanned(token_stream.clone(), message)
+                syn::Error::new_spanned(token_stream, message)
             }
         }
     }
