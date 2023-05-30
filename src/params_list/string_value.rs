@@ -34,3 +34,9 @@ impl StringValue {
         }
     }
 }
+
+impl<'s> Into<&'s str> for &'s StringValue {
+    fn into(self) -> &'s str {
+        self.as_str()
+    }
+}
