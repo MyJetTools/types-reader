@@ -16,6 +16,10 @@ impl StringValue {
         self.value.as_str()
     }
 
+    pub fn to_string(&self) -> String {
+        self.value.clone()
+    }
+
     pub fn as_literal(&self) -> &Literal {
         &self.literal
     }
