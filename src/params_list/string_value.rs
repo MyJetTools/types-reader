@@ -4,7 +4,7 @@ use proc_macro2::Literal;
 
 pub struct StringValue {
     literal: Literal,
-    pub value: String,
+    value: String,
 }
 
 impl StringValue {
@@ -18,6 +18,10 @@ impl StringValue {
 
     pub fn to_string(&self) -> String {
         self.value.clone()
+    }
+
+    pub fn into_string(self) -> String {
+        self.value
     }
 
     pub fn as_literal(&self) -> &Literal {
