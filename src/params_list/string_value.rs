@@ -40,3 +40,9 @@ impl<'s> Into<&'s str> for &'s StringValue {
         self.as_str()
     }
 }
+
+impl AsRef<str> for StringValue {
+    fn as_ref(&self) -> &str {
+        self.as_str()
+    }
+}
