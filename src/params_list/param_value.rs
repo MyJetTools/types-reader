@@ -5,7 +5,7 @@ use proc_macro2::{Literal, TokenStream};
 use rust_extensions::StrOrString;
 use syn::Ident;
 
-use crate::ParamsList;
+use crate::{ParamsList, StringValue};
 
 pub enum ParamValue {
     None(Ident),
@@ -13,10 +13,7 @@ pub enum ParamValue {
         ident: Ident,
         value: String,
     },
-    String {
-        literal: Literal,
-        value: String,
-    },
+    String(StringValue),
     Number {
         literal: Literal,
         value: i64,
@@ -49,7 +46,7 @@ impl ParamValue {
 
         if value.starts_with('"') || value.starts_with("'") {
             let value = value[1..value.len() - 1].to_string();
-            return Ok(Self::String { literal, value });
+            return Ok(Self::String(StringValue::new(literal, value)));
         }
 
         if value.contains('.') {
@@ -93,7 +90,7 @@ impl ParamValue {
             Self::SingleValueAsIdent { ident, .. } => {
                 syn::Error::new_spanned(ident.clone(), message)
             }
-            Self::String { literal, .. } => syn::Error::new_spanned(literal.clone(), message),
+            Self::String(value) => syn::Error::new_spanned(value.as_literal(), message),
             Self::Number { literal, .. } => syn::Error::new_spanned(literal.clone(), message),
             Self::Double { literal, .. } => syn::Error::new_spanned(literal.clone(), message),
             Self::Bool { literal, .. } => syn::Error::new_spanned(literal.clone(), message),
@@ -117,18 +114,17 @@ impl ParamValue {
         }
     }
 
-    pub fn get_str_value(&self) -> Result<&str, syn::Error> {
-        match self {
-            Self::String { value, .. } => Ok(value),
-
+    pub fn unwrap_str_value<'s>(&'s self) -> Result<&'s StringValue, syn::Error> {
+        match self.try_unwrap_as_str() {
+            Some(value) => Ok(value),
             _ => Err(self.throw_error("Type should be a string")),
         }
     }
 
-    pub fn get_str_value_token(&self) -> Result<TokenStream, syn::Error> {
+    pub fn try_unwrap_as_str<'s>(&'s self) -> Option<&'s StringValue> {
         match self {
-            Self::String { value, .. } => Ok(quote::quote! { #value }),
-            _ => Err(self.throw_error("Type should be a string")),
+            Self::String(value) => Some(value),
+            _ => None,
         }
     }
 
@@ -182,16 +178,30 @@ impl ParamValue {
     }
 
     pub fn unwrap_as_object_list(&self) -> Result<&Vec<ParamsList>, syn::Error> {
+        match self.try_unwrap_as_object_list() {
+            Some(value) => Ok(value),
+            None => Err(self.throw_error("Value should be an object list")),
+        }
+    }
+
+    pub fn try_unwrap_as_object_list(&self) -> Option<&Vec<ParamsList>> {
         match self {
-            Self::ObjectList { value, .. } => Ok(value),
-            _ => Err(self.throw_error("Value should be an object list")),
+            Self::ObjectList { value, .. } => Some(value),
+            _ => None,
         }
     }
 
     pub fn unwrap_as_vec_of_string(&self) -> Result<&Vec<String>, syn::Error> {
-        match self {
-            Self::VecOfString { value, .. } => Ok(value),
+        match self.try_unwrap_as_vec_of_string() {
+            Some(value) => Ok(value),
             _ => Err(self.throw_error("Value should be a vector of string")),
+        }
+    }
+
+    pub fn try_unwrap_as_vec_of_string(&self) -> Option<&Vec<String>> {
+        match self {
+            Self::VecOfString { value, .. } => Some(value),
+            _ => None,
         }
     }
 
@@ -200,7 +210,7 @@ impl ParamValue {
         err_msg: Option<impl Into<StrOrString<'static>>>,
     ) -> Result<TResult, syn::Error> {
         let value = match self {
-            Self::String { value, .. } => StrOrString::create_as_str(value.as_str()),
+            Self::String(value) => StrOrString::create_as_str(value.as_str()),
             Self::Number { value, .. } => StrOrString::create_as_string(value.to_string()),
             Self::Double { value, .. } => StrOrString::create_as_string(value.to_string()),
             Self::Bool { value, .. } => StrOrString::create_as_string(value.to_string()),
@@ -225,7 +235,7 @@ impl ParamValue {
 
     pub fn get_any_value_as_string(&self) -> Result<StrOrString, syn::Error> {
         let result = match self {
-            Self::String { value, .. } => StrOrString::create_as_str(value.as_str()),
+            Self::String(value) => StrOrString::create_as_str(value.as_str()),
             Self::Number { value, .. } => StrOrString::create_as_string(value.to_string()),
             Self::Double { value, .. } => StrOrString::create_as_string(value.to_string()),
             Self::Bool { value, .. } => StrOrString::create_as_string(value.to_string()),
