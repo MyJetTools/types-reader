@@ -5,7 +5,9 @@ use proc_macro2::{Literal, TokenStream};
 use rust_extensions::StrOrString;
 use syn::Ident;
 
-use crate::{BoolValue, DoubleValue, NumberValue, ParamsList, SingleValueAsIdent, StringValue};
+use crate::{
+    BoolValue, DoubleValue, NumberValue, ParamsList, SingleValueAsIdent, StringValue, VecOfValues,
+};
 
 pub enum ParamValue {
     None(Ident),
@@ -22,10 +24,7 @@ pub enum ParamValue {
         token_stream: TokenStream,
         value: Vec<ParamsList>,
     },
-    VecOfString {
-        token_stream: TokenStream,
-        value: Vec<String>,
-    },
+    VecOfValues(VecOfValues),
 }
 
 impl ParamValue {
@@ -78,10 +77,7 @@ impl ParamValue {
             Self::Bool(value) => value.throw_error(message),
             Self::Object { token_stream, .. } => syn::Error::new_spanned(token_stream, message),
             Self::ObjectList { token_stream, .. } => syn::Error::new_spanned(token_stream, message),
-
-            Self::VecOfString { token_stream, .. } => {
-                syn::Error::new_spanned(token_stream, message)
-            }
+            Self::VecOfValues(value) => value.throw_error(message),
         }
     }
 
@@ -162,16 +158,16 @@ impl ParamValue {
         }
     }
 
-    pub fn unwrap_as_vec_of_string(&self) -> Result<&Vec<String>, syn::Error> {
-        match self.try_unwrap_as_vec_of_string() {
+    pub fn unwrap_as_vec_of_values(&self) -> Result<&VecOfValues, syn::Error> {
+        match self.try_unwrap_as_vec_of_values() {
             Some(value) => Ok(value),
             _ => Err(self.throw_error("Value should be a vector of string")),
         }
     }
 
-    pub fn try_unwrap_as_vec_of_string(&self) -> Option<&Vec<String>> {
+    pub fn try_unwrap_as_vec_of_values(&self) -> Option<&VecOfValues> {
         match self {
-            Self::VecOfString { value, .. } => Some(value),
+            Self::VecOfValues(value) => Some(value),
             _ => None,
         }
     }
