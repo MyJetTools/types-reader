@@ -1,4 +1,4 @@
-use crate::get_list_of_elements;
+use crate::{get_list_of_elements, SingleValueAsIdent};
 
 use super::ParamValue;
 use proc_macro2::{Ident, TokenStream, TokenTree};
@@ -35,7 +35,9 @@ impl ParamsList {
                     let value = ident.to_string();
                     return Ok(Self::Single {
                         token_stream,
-                        value: ParamValue::SingleValueAsIdent { ident, value },
+                        value: ParamValue::SingleValueAsIdent(SingleValueAsIdent::new(
+                            ident, value,
+                        )),
                     });
                 }
                 TokenTree::Punct(el) => {

@@ -5,27 +5,15 @@ use proc_macro2::{Literal, TokenStream};
 use rust_extensions::StrOrString;
 use syn::Ident;
 
-use crate::{ParamsList, StringValue};
+use crate::{BoolValue, DoubleValue, NumberValue, ParamsList, SingleValueAsIdent, StringValue};
 
 pub enum ParamValue {
     None(Ident),
-    SingleValueAsIdent {
-        ident: Ident,
-        value: String,
-    },
+    SingleValueAsIdent(SingleValueAsIdent),
     String(StringValue),
-    Number {
-        literal: Literal,
-        value: i64,
-    },
-    Double {
-        literal: Literal,
-        value: String,
-    },
-    Bool {
-        literal: Literal,
-        value: bool,
-    },
+    Number(NumberValue),
+    Double(DoubleValue),
+    Bool(BoolValue),
     Object {
         token_stream: TokenStream,
         value: Box<ParamsList>,
@@ -52,7 +40,9 @@ impl ParamValue {
         if value.contains('.') {
             let result = value.parse::<f64>();
             match result {
-                Ok(_) => return Ok(Self::Double { literal, value }),
+                Ok(double_value) => {
+                    return Ok(Self::Double(DoubleValue::new(literal, double_value, value)))
+                }
                 Err(_) => {
                     return Err(syn::Error::new_spanned(
                         literal,
@@ -63,21 +53,15 @@ impl ParamValue {
         }
 
         if value == "true" {
-            return Ok(Self::Bool {
-                literal,
-                value: true,
-            });
+            return Ok(Self::Bool(BoolValue::new(literal, true, value)));
         }
 
         if value == "false" {
-            return Ok(Self::Bool {
-                literal,
-                value: false,
-            });
+            return Ok(Self::Bool(BoolValue::new(literal, false, value)));
         }
 
         match value.parse::<i64>() {
-            Ok(value) => return Ok(Self::Number { literal, value }),
+            Ok(i64_value) => return Ok(Self::Number(NumberValue::new(literal, i64_value, value))),
             Err(_) => {
                 return Err(syn::Error::new_spanned(literal, "Unknown type"));
             }
@@ -87,13 +71,11 @@ impl ParamValue {
     pub fn throw_error(&self, message: &str) -> syn::Error {
         match self {
             Self::None(ident) => syn::Error::new_spanned(ident.clone(), message),
-            Self::SingleValueAsIdent { ident, .. } => {
-                syn::Error::new_spanned(ident.clone(), message)
-            }
+            Self::SingleValueAsIdent(value) => syn::Error::new_spanned(value.get_ident(), message),
             Self::String(value) => syn::Error::new_spanned(value.as_literal(), message),
-            Self::Number { literal, .. } => syn::Error::new_spanned(literal.clone(), message),
-            Self::Double { literal, .. } => syn::Error::new_spanned(literal.clone(), message),
-            Self::Bool { literal, .. } => syn::Error::new_spanned(literal.clone(), message),
+            Self::Number(value) => syn::Error::new_spanned(value.as_literal(), message),
+            Self::Double(value) => syn::Error::new_spanned(value.as_literal(), message),
+            Self::Bool(value) => syn::Error::new_spanned(value.as_literal(), message),
             Self::Object { token_stream, .. } => {
                 syn::Error::new_spanned(token_stream.clone(), message)
             }
@@ -128,52 +110,45 @@ impl ParamValue {
         }
     }
 
-    pub fn get_bool_value(&self) -> Result<bool, syn::Error> {
-        match self {
-            Self::Bool { value, .. } => Ok(*value),
-
+    pub fn unwrap_as_bool_value(&self) -> Result<&BoolValue, syn::Error> {
+        match self.try_unwrap_as_bool_value() {
+            Some(value) => Ok(value),
             _ => Err(self.throw_error("Type should be bool")),
         }
     }
 
-    pub fn get_bool_value_token(&self) -> Result<TokenStream, syn::Error> {
+    pub fn try_unwrap_as_bool_value(&self) -> Option<&BoolValue> {
         match self {
-            Self::Bool { value, .. } => match value {
-                true => Ok(TokenStream::from_str("true").unwrap()),
-                false => Ok(TokenStream::from_str("false").unwrap()),
-            },
-
-            _ => Err(self.throw_error("Type should be bool")),
+            Self::Bool(value) => Some(value),
+            _ => None,
         }
     }
 
-    pub fn get_number_value(&self) -> Result<i64, syn::Error> {
-        match self {
-            Self::Number { value, .. } => Ok(*value),
-
-            _ => Err(self.throw_error("Type should be a number")),
+    pub fn unwrap_as_number_value(&self) -> Result<&NumberValue, syn::Error> {
+        match self.try_unwrap_as_number_value() {
+            Some(value) => Ok(value),
+            _ => Err(self.throw_error("Value should be a number")),
         }
     }
 
-    pub fn get_number_value_token(&self) -> Result<Literal, syn::Error> {
+    pub fn try_unwrap_as_number_value(&self) -> Option<&NumberValue> {
         match self {
-            Self::Number { value, .. } => Ok(Literal::i64_unsuffixed(*value)),
-
-            _ => Err(self.throw_error("Type should be a number")),
+            Self::Number(value) => Some(value),
+            _ => None,
         }
     }
 
-    pub fn get_double_value(&self) -> Result<f64, syn::Error> {
-        match self {
-            Self::Double { value, .. } => Ok(value.parse::<f64>().unwrap()),
+    pub fn unwrap_as_double_value(&self) -> Result<&DoubleValue, syn::Error> {
+        match self.try_unwrap_as_double_value() {
+            Some(value) => Ok(value),
             _ => Err(self.throw_error("Type should be a double value")),
         }
     }
 
-    pub fn get_double_value_token(&self) -> Result<TokenStream, syn::Error> {
+    pub fn try_unwrap_as_double_value(&self) -> Option<&DoubleValue> {
         match self {
-            Self::Double { value, .. } => Ok(TokenStream::from_str(value).unwrap()),
-            _ => Err(self.throw_error("Type should be a double value")),
+            Self::Double(value) => Some(value),
+            _ => None,
         }
     }
 
@@ -205,15 +180,29 @@ impl ParamValue {
         }
     }
 
+    pub fn unwrap_as_single_value(&self) -> Result<&SingleValueAsIdent, syn::Error> {
+        match self.try_unwrap_as_single_value() {
+            Some(value) => Ok(value),
+            _ => Err(self.throw_error("Value should be a single value")),
+        }
+    }
+
+    pub fn try_unwrap_as_single_value(&self) -> Option<&SingleValueAsIdent> {
+        match self {
+            Self::SingleValueAsIdent(value) => Some(value),
+            _ => None,
+        }
+    }
+
     pub fn get_value<TResult: FromStr>(
         &self,
         err_msg: Option<impl Into<StrOrString<'static>>>,
     ) -> Result<TResult, syn::Error> {
         let value = match self {
             Self::String(value) => StrOrString::create_as_str(value.as_str()),
-            Self::Number { value, .. } => StrOrString::create_as_string(value.to_string()),
-            Self::Double { value, .. } => StrOrString::create_as_string(value.to_string()),
-            Self::Bool { value, .. } => StrOrString::create_as_string(value.to_string()),
+            Self::Number(value) => StrOrString::create_as_str(value.as_str()),
+            Self::Double(value) => StrOrString::create_as_str(value.as_str()),
+            Self::Bool(value) => StrOrString::create_as_str(value.as_str()),
             _ => return Err(self.throw_error("Type should be a string")),
         };
 
@@ -233,12 +222,12 @@ impl ParamValue {
         }
     }
 
-    pub fn get_any_value_as_string(&self) -> Result<StrOrString, syn::Error> {
+    pub fn get_any_value_as_str(&self) -> Result<&str, syn::Error> {
         let result = match self {
-            Self::String(value) => StrOrString::create_as_str(value.as_str()),
-            Self::Number { value, .. } => StrOrString::create_as_string(value.to_string()),
-            Self::Double { value, .. } => StrOrString::create_as_string(value.to_string()),
-            Self::Bool { value, .. } => StrOrString::create_as_string(value.to_string()),
+            Self::String(value) => value.as_str(),
+            Self::Number(value) => value.as_str(),
+            Self::Double(value) => value.as_str(),
+            Self::Bool(value) => value.as_str(),
             _ => return Err(self.throw_error("Type should be a string")),
         };
 
