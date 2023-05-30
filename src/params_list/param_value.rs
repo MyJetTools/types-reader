@@ -114,14 +114,14 @@ impl ParamValue {
         }
     }
 
-    pub fn unwrap_str_value<'s>(&'s self) -> Result<&'s StringValue, syn::Error> {
-        match self.try_unwrap_as_str() {
+    pub fn unwrap_as_string_value<'s>(&'s self) -> Result<&'s StringValue, syn::Error> {
+        match self.try_unwrap_as_string_value() {
             Some(value) => Ok(value),
             _ => Err(self.throw_error("Type should be a string")),
         }
     }
 
-    pub fn try_unwrap_as_str<'s>(&'s self) -> Option<&'s StringValue> {
+    pub fn try_unwrap_as_string_value<'s>(&'s self) -> Option<&'s StringValue> {
         match self {
             Self::String(value) => Some(value),
             _ => None,
