@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{ops::Deref, str::FromStr};
 
 use proc_macro2::Literal;
 
@@ -51,8 +51,10 @@ impl Into<String> for StringValue {
     }
 }
 
-impl<'s> AsRef<str> for &'s StringValue {
-    fn as_ref(&self) -> &str {
+impl Deref for StringValue {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
         self.as_str()
     }
 }
