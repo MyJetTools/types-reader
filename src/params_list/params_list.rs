@@ -152,18 +152,26 @@ impl ParamsList {
     }
 
     pub fn get_from_single_or_named(&self, param_name: &str) -> Result<&ParamValue, syn::Error> {
-        if let Ok(result) = self.get_single_param() {
+        if let Some(result) = self.try_get_single_param() {
             return Ok(result);
         }
 
         self.get_named_param(param_name)
     }
 
-    pub fn get_token_stream(&self) -> TokenStream {
+    pub fn try_get_from_single_or_named(&self, param_name: &str) -> Option<&ParamValue> {
+        if let Some(result) = self.try_get_single_param() {
+            return Some(result);
+        }
+
+        self.try_get_named_param(param_name)
+    }
+
+    pub fn get_token_stream(&self) -> &TokenStream {
         match self {
-            Self::None(token_stream) => token_stream.clone(),
-            Self::Single { token_stream, .. } => token_stream.clone(),
-            Self::Multiple { token_stream, .. } => token_stream.clone(),
+            Self::None(token_stream) => token_stream,
+            Self::Single { token_stream, .. } => token_stream,
+            Self::Multiple { token_stream, .. } => token_stream,
         }
     }
 }
