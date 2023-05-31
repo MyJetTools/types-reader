@@ -225,4 +225,11 @@ impl ParamValue {
 
         Ok(result)
     }
+
+    pub fn is_vec_of_values(&self) -> bool {
+        match self {
+            Self::VecOfValues(_) => true,
+            _ => false,
+        }
+    }
 }

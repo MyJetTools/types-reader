@@ -293,4 +293,17 @@ mod tests {
 
         assert_eq!("bid-ask", value);
     }
+
+    #[test]
+    fn test_empty_brackets() {
+        let src = r#"authorized: []"#;
+
+        let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
+
+        let params_list = ParamsList::new(token_stream).unwrap();
+
+        let value = params_list.try_get_named_param("authorized").unwrap();
+
+        assert!(value.is_vec_of_values());
+    }
 }

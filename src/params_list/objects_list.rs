@@ -45,7 +45,7 @@ pub fn get_list_of_elements(token_stream: TokenStream) -> Result<ParamValue, syn
 
                 match result {
                     ParamValue::VecOfValues(value) => {
-                        value.add_value(literal);
+                        value.add_value(literal)?;
                     }
                     _ => {
                         return Err(syn::Error::new_spanned(
@@ -60,10 +60,9 @@ pub fn get_list_of_elements(token_stream: TokenStream) -> Result<ParamValue, syn
     }
 
     if result.is_none() {
-        return Err(syn::Error::new_spanned(
-            token_stream,
-            "Expected group of objects",
-        ));
+        return Ok(ParamValue::VecOfValues(VecOfValues::new(
+            token_stream.clone(),
+        )));
     }
 
     Ok(result.unwrap())
