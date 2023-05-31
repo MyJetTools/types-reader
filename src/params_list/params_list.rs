@@ -242,3 +242,55 @@ fn into_value(ident: Ident, token_tree: TokenTree) -> Result<ParamValue, syn::Er
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use crate::ParamsList;
+
+    #[test]
+    fn test_value_in_named_param_reading_by_single_or_by_name_but_topic() {
+        let src = r#"topic_id = "bid-ask""#;
+
+        let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
+
+        let params_list = ParamsList::new(token_stream).unwrap();
+
+        let value = params_list
+            .try_get_named_param("topic_id")
+            .unwrap()
+            .unwrap_as_string_value()
+            .unwrap()
+            .as_str();
+
+        assert_eq!("bid-ask", value);
+
+        let value = params_list
+            .try_get_from_single_or_named("topic_id")
+            .unwrap()
+            .unwrap_as_string_value()
+            .unwrap()
+            .as_str();
+
+        assert_eq!("bid-ask", value);
+    }
+
+    #[test]
+    fn test_value_in_single_param_reading_by_single_or_by_name_but_topic() {
+        let src = r#""bid-ask""#;
+
+        let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
+
+        let params_list = ParamsList::new(token_stream).unwrap();
+
+        let value = params_list
+            .try_get_from_single_or_named("topic_id")
+            .unwrap()
+            .unwrap_as_string_value()
+            .unwrap()
+            .as_str();
+
+        assert_eq!("bid-ask", value);
+    }
+}
