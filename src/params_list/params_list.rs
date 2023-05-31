@@ -174,6 +174,14 @@ impl ParamsList {
             Self::Multiple { token_stream, .. } => token_stream,
         }
     }
+
+    pub fn len(&self) -> usize {
+        match self {
+            Self::None(_) => 0,
+            Self::Single { .. } => 1,
+            Self::Multiple { items, .. } => items.len(),
+        }
+    }
 }
 
 fn get_ident(items: &mut VecDeque<TokenTree>) -> Result<Option<Ident>, syn::Error> {

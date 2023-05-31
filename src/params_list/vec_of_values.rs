@@ -28,4 +28,8 @@ impl VecOfValues {
     pub fn iter_values(&self) -> impl Iterator<Item = &ParamValue> {
         self.value.iter()
     }
+
+    pub fn len(&self) -> usize {
+        self.value.len()
+    }
 }
