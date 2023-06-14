@@ -1,7 +1,7 @@
 use proc_macro2::{Literal, TokenStream};
 
 use crate::ParamValue;
-
+#[derive(Debug)]
 pub struct VecOfValues {
     token_stream: TokenStream,
     value: Vec<ParamValue>,

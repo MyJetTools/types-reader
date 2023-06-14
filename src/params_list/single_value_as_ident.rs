@@ -1,5 +1,5 @@
 use proc_macro2::Ident;
-
+#[derive(Debug)]
 pub struct SingleValueAsIdent {
     ident: Ident,
     value: String,

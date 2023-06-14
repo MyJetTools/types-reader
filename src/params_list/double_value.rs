@@ -1,5 +1,5 @@
 use proc_macro2::Literal;
-
+#[derive(Debug)]
 pub struct DoubleValue {
     literal: Literal,
     value: f64,

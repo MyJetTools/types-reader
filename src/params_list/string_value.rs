@@ -1,7 +1,7 @@
 use std::{ops::Deref, str::FromStr};
 
 use proc_macro2::Literal;
-
+#[derive(Debug)]
 pub struct StringValue {
     literal: Literal,
     value: String,

@@ -3,7 +3,7 @@ use crate::{get_list_of_elements, SingleValueAsIdent};
 use super::ParamValue;
 use proc_macro2::{Ident, TokenStream, TokenTree};
 use std::collections::{HashMap, VecDeque};
-
+#[derive(Debug)]
 pub enum ParamsList {
     None(TokenStream),
     Single {
@@ -61,9 +61,10 @@ impl ParamsList {
             let value = tokens.pop_front();
 
             if value.is_none() {
-                return Ok(Self::Single {
+                items.insert(key, ParamValue::None(ident));
+                return Ok(Self::Multiple {
                     token_stream,
-                    value: ParamValue::None(ident),
+                    items,
                 });
             }
 
@@ -313,5 +314,28 @@ mod tests {
         let value = params_list.try_get_named_param("authorized").unwrap();
 
         assert!(value.is_vec_of_values());
+    }
+
+    #[test]
+    fn test_with_empty_value() {
+        let src = r#"id: 5; name:"5";  description:"Persist during 5 sec"; default"#;
+
+        let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
+
+        let params_list = ParamsList::new(token_stream).unwrap();
+
+        let value = params_list.try_get_named_param("id").unwrap();
+        assert_eq!(value.unwrap_as_number_value().unwrap().as_i32(), 5);
+
+        let value = params_list.try_get_named_param("name").unwrap();
+        assert_eq!(value.unwrap_as_string_value().unwrap().as_str(), "5");
+
+        let value = params_list.try_get_named_param("description").unwrap();
+        assert_eq!(
+            value.unwrap_as_string_value().unwrap().as_str(),
+            "Persist during 5 sec"
+        );
+
+        assert!(params_list.has_param("default"));
     }
 }

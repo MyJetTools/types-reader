@@ -9,6 +9,7 @@ use crate::{
     BoolValue, DoubleValue, NumberValue, ParamsList, SingleValueAsIdent, StringValue, VecOfValues,
 };
 
+#[derive(Debug)]
 pub enum ParamValue {
     None(Ident),
     SingleValueAsIdent(SingleValueAsIdent),
