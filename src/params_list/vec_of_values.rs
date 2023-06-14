@@ -15,8 +15,8 @@ impl VecOfValues {
         }
     }
 
-    pub fn add_value(&mut self, value: Literal) -> Result<(), syn::Error> {
-        let value = ParamValue::from_literal(value)?;
+    pub fn add_value(&mut self, value: Literal, is_negative: bool) -> Result<(), syn::Error> {
+        let value = ParamValue::from_literal(value, is_negative)?;
         self.value.push(value);
         Ok(())
     }

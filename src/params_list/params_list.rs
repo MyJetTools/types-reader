@@ -25,32 +25,19 @@ impl ParamsList {
         }
 
         if tokens.len() == 1 {
+            return Self::from_single_token(token_stream, tokens, false);
+        }
+
+        if tokens.len() == 2 {
             let token = tokens.pop_front().unwrap();
-            match token {
-                TokenTree::Group(el) => {
-                    println!("Group: {}", el.to_string());
-                    panic!("Single element can not be group")
-                }
-                TokenTree::Ident(ident) => {
-                    let value = ident.to_string();
-                    return Ok(Self::Single {
-                        token_stream,
-                        value: ParamValue::SingleValueAsIdent(SingleValueAsIdent::new(
-                            ident, value,
-                        )),
-                    });
-                }
-                TokenTree::Punct(el) => {
-                    println!("Punct: {:?}", el.to_string());
-                    panic!("Single element can not be punct");
-                }
-                TokenTree::Literal(literal) => {
-                    return Ok(Self::Single {
-                        token_stream,
-                        value: ParamValue::from_literal(literal)?,
-                    });
-                }
+
+            if token.to_string() != "-" {
+                return Err(syn::Error::new_spanned(
+                    token_stream.clone(),
+                    "Invalid value",
+                ));
             }
+            return Self::from_single_token(token_stream, tokens, true);
         }
 
         let mut items = HashMap::new();
@@ -58,23 +45,8 @@ impl ParamsList {
         while let Some(ident) = get_ident(&mut tokens)? {
             let key: String = ident.to_string();
 
-            let value = tokens.pop_front();
+            let value = read_value(ident, &mut tokens)?;
 
-            if value.is_none() {
-                items.insert(key, ParamValue::None(ident));
-                return Ok(Self::Multiple {
-                    token_stream,
-                    items,
-                });
-            }
-
-            let mut value = value.unwrap();
-
-            if let TokenTree::Punct(_) = &value {
-                value = tokens.pop_front().unwrap();
-            }
-
-            let value = into_value(ident, value)?;
             items.insert(key, value);
         }
 
@@ -99,6 +71,37 @@ impl ParamsList {
                     token_stream.clone(),
                     "Attribute has multiple params",
                 ));
+            }
+        }
+    }
+
+    fn from_single_token(
+        token_stream: TokenStream,
+        mut tokens: VecDeque<TokenTree>,
+        is_negative: bool,
+    ) -> Result<Self, syn::Error> {
+        let token = tokens.pop_front().unwrap();
+        match token {
+            TokenTree::Group(el) => {
+                println!("Group: {}", el.to_string());
+                panic!("Single element can not be group")
+            }
+            TokenTree::Ident(ident) => {
+                let value = ident.to_string();
+                return Ok(Self::Single {
+                    token_stream,
+                    value: ParamValue::SingleValueAsIdent(SingleValueAsIdent::new(ident, value)),
+                });
+            }
+            TokenTree::Punct(el) => {
+                println!("Punct: {:?}", el.to_string());
+                panic!("Single element can not be punct");
+            }
+            TokenTree::Literal(literal) => {
+                return Ok(Self::Single {
+                    token_stream,
+                    value: ParamValue::from_literal(literal, is_negative)?,
+                });
             }
         }
     }
@@ -211,43 +214,61 @@ fn get_ident(items: &mut VecDeque<TokenTree>) -> Result<Option<Ident>, syn::Erro
     Ok(None)
 }
 
-fn into_value(ident: Ident, token_tree: TokenTree) -> Result<ParamValue, syn::Error> {
-    match token_tree {
-        TokenTree::Ident(value) => Err(syn::Error::new_spanned(value, "Value can not be ident")),
-        TokenTree::Group(value) => match value.delimiter() {
-            proc_macro2::Delimiter::Parenthesis => {
-                panic!(
-                    "Not implemented group with Delimiter = Parenthesis. Value {}",
-                    value.to_string()
-                )
-            }
-            proc_macro2::Delimiter::Brace => {
-                let token_stream = value.stream();
-                let value = ParamsList::new(token_stream.clone())?;
-                let result = ParamValue::Object {
-                    token_stream,
-                    value: Box::new(value),
-                };
-                return Ok(result);
-            }
-            proc_macro2::Delimiter::Bracket => {
-                let token_stream = value.stream();
-                let value = get_list_of_elements(token_stream.clone())?;
+pub enum IntoValueResult {
+    Minus,
+    Value(ParamValue),
+}
 
-                return Ok(value);
-            }
-            proc_macro2::Delimiter::None => {
-                panic!(
-                    "Not implemented group with Delimiter = None. Value {}",
-                    value.to_string()
-                )
-            }
-        },
-        TokenTree::Punct(_) => {
-            return Ok(ParamValue::None(ident));
+fn read_value(ident: Ident, tokens: &mut VecDeque<TokenTree>) -> Result<ParamValue, syn::Error> {
+    let mut is_negative = false;
+    loop {
+        let mut token_tree = tokens.pop_front();
+
+        if token_tree.is_none() {
+            return Ok(ParamValue::None(ident.clone()));
         }
-        TokenTree::Literal(value) => {
-            return Ok(ParamValue::from_literal(value)?);
+
+        match token_tree.unwrap() {
+            TokenTree::Ident(value) => {
+                return Err(syn::Error::new_spanned(value, "Value can not be ident"))
+            }
+            TokenTree::Group(value) => match value.delimiter() {
+                proc_macro2::Delimiter::Parenthesis => {
+                    panic!(
+                        "Not implemented group with Delimiter = Parenthesis. Value {}",
+                        value.to_string()
+                    )
+                }
+                proc_macro2::Delimiter::Brace => {
+                    let token_stream = value.stream();
+                    let value = ParamsList::new(token_stream.clone())?;
+                    let result = ParamValue::Object {
+                        token_stream,
+                        value: Box::new(value),
+                    };
+                    return Ok(result);
+                }
+                proc_macro2::Delimiter::Bracket => {
+                    let token_stream = value.stream();
+                    let value = get_list_of_elements(token_stream.clone())?;
+
+                    return Ok(value);
+                }
+                proc_macro2::Delimiter::None => {
+                    panic!(
+                        "Not implemented group with Delimiter = None. Value {}",
+                        value.to_string()
+                    )
+                }
+            },
+            TokenTree::Punct(value) => {
+                if value.as_char() == '-' {
+                    is_negative = true;
+                }
+            }
+            TokenTree::Literal(value) => {
+                return Ok(ParamValue::from_literal(value, is_negative)?);
+            }
         }
     }
 }
@@ -337,5 +358,48 @@ mod tests {
         );
 
         assert!(params_list.has_param("default"));
+    }
+
+    #[test]
+    fn test_with_negative_values() {
+        let src = r#"id = -1; description = "Table already exists""#;
+
+        let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
+
+        let params_list = ParamsList::new(token_stream).unwrap();
+
+        let value = params_list.try_get_named_param("id").unwrap();
+        assert_eq!(value.unwrap_as_number_value().unwrap().as_i32(), -1);
+
+        let value = params_list.try_get_named_param("description").unwrap();
+        assert_eq!(
+            value.unwrap_as_string_value().unwrap().as_str(),
+            "Table already exists"
+        );
+    }
+    #[test]
+    fn test_with_single_negative_value() {
+        let src = r#"-256"#;
+
+        let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
+
+        let params_list = ParamsList::new(token_stream).unwrap();
+
+        let value = params_list.get_single_param().unwrap();
+
+        assert_eq!(value.unwrap_as_number_value().unwrap().as_i32(), -256);
+    }
+
+    #[test]
+    fn test_with_single_positive_value() {
+        let src = r#"256"#;
+
+        let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
+
+        let params_list = ParamsList::new(token_stream).unwrap();
+
+        let value = params_list.get_single_param().unwrap();
+
+        assert_eq!(value.unwrap_as_number_value().unwrap().as_i32(), 256);
     }
 }

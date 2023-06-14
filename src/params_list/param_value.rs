@@ -29,7 +29,7 @@ pub enum ParamValue {
 }
 
 impl ParamValue {
-    pub fn from_literal(literal: Literal) -> Result<Self, syn::Error> {
+    pub fn from_literal(literal: Literal, is_negative: bool) -> Result<Self, syn::Error> {
         let value = literal.to_string();
 
         if value.starts_with('"') || value.starts_with("'") {
@@ -40,8 +40,11 @@ impl ParamValue {
         if value.contains('.') {
             let result = value.parse::<f64>();
             match result {
-                Ok(double_value) => {
-                    return Ok(Self::Double(DoubleValue::new(literal, double_value, value)))
+                Ok(mut double_value) => {
+                    if is_negative {
+                        double_value = -double_value;
+                    }
+                    return Ok(Self::Double(DoubleValue::new(literal, double_value, value)));
                 }
                 Err(_) => {
                     return Err(syn::Error::new_spanned(
@@ -61,7 +64,12 @@ impl ParamValue {
         }
 
         match value.parse::<i64>() {
-            Ok(i64_value) => return Ok(Self::Number(NumberValue::new(literal, i64_value, value))),
+            Ok(mut i64_value) => {
+                if is_negative {
+                    i64_value = -i64_value;
+                }
+                return Ok(Self::Number(NumberValue::new(literal, i64_value, value)));
+            }
             Err(_) => {
                 return Err(syn::Error::new_spanned(literal, "Unknown type"));
             }

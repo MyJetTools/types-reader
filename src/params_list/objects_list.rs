@@ -45,7 +45,7 @@ pub fn get_list_of_elements(token_stream: TokenStream) -> Result<ParamValue, syn
 
                 match result {
                     ParamValue::VecOfValues(value) => {
-                        value.add_value(literal)?;
+                        value.add_value(literal, false)?; //TODO - BUG - probably we can not read negative values
                     }
                     _ => {
                         return Err(syn::Error::new_spanned(
