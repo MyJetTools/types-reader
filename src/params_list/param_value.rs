@@ -30,7 +30,7 @@ pub enum ParamValue {
 
 impl ParamValue {
     pub fn from_literal(literal: Literal, is_negative: bool) -> Result<Self, syn::Error> {
-        let value = literal.to_string();
+        let mut value = literal.to_string();
 
         if value.starts_with('"') || value.starts_with("'") {
             let value = value[1..value.len() - 1].to_string();
@@ -43,6 +43,7 @@ impl ParamValue {
                 Ok(mut double_value) => {
                     if is_negative {
                         double_value = -double_value;
+                        value.insert(0, '-');
                     }
                     return Ok(Self::Double(DoubleValue::new(literal, double_value, value)));
                 }
@@ -67,6 +68,7 @@ impl ParamValue {
             Ok(mut i64_value) => {
                 if is_negative {
                     i64_value = -i64_value;
+                    value.insert(0, '-');
                 }
                 return Ok(Self::Number(NumberValue::new(literal, i64_value, value)));
             }
