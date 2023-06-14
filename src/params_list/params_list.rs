@@ -402,4 +402,30 @@ mod tests {
 
         assert_eq!(value.unwrap_as_number_value().unwrap().as_i32(), 256);
     }
+
+    #[test]
+    fn test_with_single_positive_double_value() {
+        let src = r#"256.34"#;
+
+        let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
+
+        let params_list = ParamsList::new(token_stream).unwrap();
+
+        let value = params_list.get_single_param().unwrap();
+
+        assert_eq!(value.unwrap_as_double_value().unwrap().as_f64(), 256.34);
+    }
+
+    #[test]
+    fn test_with_single_negative_double_value() {
+        let src = r#"-256.34"#;
+
+        let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
+
+        let params_list = ParamsList::new(token_stream).unwrap();
+
+        let value = params_list.get_single_param().unwrap();
+
+        assert_eq!(value.unwrap_as_double_value().unwrap().as_f64(), -256.34);
+    }
 }
