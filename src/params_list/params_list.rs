@@ -222,15 +222,15 @@ pub enum IntoValueResult {
 fn read_value(ident: Ident, tokens: &mut VecDeque<TokenTree>) -> Result<ParamValue, syn::Error> {
     let mut is_negative = false;
     loop {
-        let mut token_tree = tokens.pop_front();
+        let token_tree = tokens.pop_front();
 
         if token_tree.is_none() {
             return Ok(ParamValue::None(ident.clone()));
         }
 
         match token_tree.unwrap() {
-            TokenTree::Ident(value) => {
-                return Err(syn::Error::new_spanned(value, "Value can not be ident"))
+            TokenTree::Ident(ident) => {
+                return ParamValue::from_ident(ident);
             }
             TokenTree::Group(value) => match value.delimiter() {
                 proc_macro2::Delimiter::Parenthesis => {
@@ -427,5 +427,43 @@ mod tests {
         let value = params_list.get_single_param().unwrap();
 
         assert_eq!(value.unwrap_as_double_value().unwrap().as_f64(), -256.34);
+    }
+
+    #[test]
+    fn test_with_boolean_value_as_true() {
+        let src = r#"description = "Persist table"; default: true"#;
+
+        let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
+
+        let params_list = ParamsList::new(token_stream).unwrap();
+
+        let value = params_list.get_named_param("description").unwrap();
+
+        assert_eq!(
+            value.unwrap_as_string_value().unwrap().as_str(),
+            "Persist table"
+        );
+
+        let value = params_list.get_named_param("default").unwrap();
+        assert_eq!(value.unwrap_as_bool_value().unwrap().get_value(), true);
+    }
+
+    #[test]
+    fn test_with_boolean_value_as_false() {
+        let src = r#"description = "Persist table"; default: false"#;
+
+        let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
+
+        let params_list = ParamsList::new(token_stream).unwrap();
+
+        let value = params_list.get_named_param("description").unwrap();
+
+        assert_eq!(
+            value.unwrap_as_string_value().unwrap().as_str(),
+            "Persist table"
+        );
+
+        let value = params_list.get_named_param("default").unwrap();
+        assert_eq!(value.unwrap_as_bool_value().unwrap().get_value(), false);
     }
 }

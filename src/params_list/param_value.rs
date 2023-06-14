@@ -29,6 +29,19 @@ pub enum ParamValue {
 }
 
 impl ParamValue {
+    pub fn from_ident(ident: Ident) -> Result<Self, syn::Error> {
+        let value = ident.to_string();
+
+        if value == "true" {
+            return Ok(Self::Bool(BoolValue::new(ident, true, value)));
+        }
+
+        if value == "false" {
+            return Ok(Self::Bool(BoolValue::new(ident, false, value)));
+        }
+        return Err(syn::Error::new_spanned(value, "Unknown value ident"));
+    }
+
     pub fn from_literal(literal: Literal, is_negative: bool) -> Result<Self, syn::Error> {
         let mut value = literal.to_string();
 
@@ -54,14 +67,6 @@ impl ParamValue {
                     ));
                 }
             }
-        }
-
-        if value == "true" {
-            return Ok(Self::Bool(BoolValue::new(literal, true, value)));
-        }
-
-        if value == "false" {
-            return Ok(Self::Bool(BoolValue::new(literal, false, value)));
         }
 
         match value.parse::<i64>() {
