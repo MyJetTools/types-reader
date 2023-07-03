@@ -92,6 +92,31 @@ impl<'s> Attributes<'s> {
         attr.get_from_single_or_named(param_name)
     }
 
+    pub fn try_get_single_or_named_param(
+        &'s self,
+        attr_name: &str,
+        param_name: &str,
+    ) -> Option<&'s ParamValue> {
+        let attr = self.try_get_attr(attr_name)?;
+        attr.try_get_from_single_or_named(param_name)
+    }
+
+    pub fn try_get_single_or_named_params<'d>(
+        &'s self,
+        attr_name: &str,
+        param_names: impl Iterator<Item = &'d str>,
+    ) -> Option<&'s ParamValue> {
+        let attr = self.try_get_attr(attr_name)?;
+
+        for param_name in param_names {
+            if let Some(value) = attr.try_get_from_single_or_named(param_name) {
+                return Some(value);
+            }
+        }
+
+        None
+    }
+
     pub fn has_attr(&self, name: &str) -> bool {
         let result = self.attrs.contains_key(name);
 
