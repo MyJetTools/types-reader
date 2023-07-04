@@ -75,6 +75,29 @@ impl ParamsList {
         }
     }
 
+    pub fn check_for_unknown_params(
+        &self,
+        used_attributes: &[&'static str],
+    ) -> Result<(), syn::Error> {
+        match self {
+            Self::None(_) => return Ok(()),
+            Self::Single { .. } => {
+                return Ok(());
+            }
+            Self::Multiple { items, .. } => {
+                for (param_name, value) in items {
+                    if !used_attributes.iter().any(|itm| *itm == param_name) {
+                        return Err(
+                            value.throw_error(format!("Unknown parameter {}", param_name).as_str())
+                        );
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     fn from_single_token(
         token_stream: TokenStream,
         mut tokens: VecDeque<TokenTree>,

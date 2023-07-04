@@ -37,6 +37,21 @@ impl<'s> Attributes<'s> {
         Ok(Self { root, attrs })
     }
 
+    pub fn check_for_unknown_params(
+        &self,
+        check: impl Fn(&str, &ParamsList) -> Result<(), syn::Error>,
+    ) -> Result<(), syn::Error> {
+        for (attr_name, params_list) in &self.attrs {
+            for param_list in params_list {
+                if let Err(err) = check(attr_name, param_list) {
+                    return Err(err);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn get_attr(&'s self, attr_name: &str) -> Result<&'s ParamsList, syn::Error> {
         let attr = self.attrs.get(attr_name);
 
