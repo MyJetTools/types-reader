@@ -43,4 +43,9 @@ impl<'s> StructProperty<'s> {
     pub fn get_syn_type(&self) -> &syn::Type {
         &self.field.ty
     }
+
+    pub fn throw_error<TResult>(&self, message: &str) -> Result<TResult, syn::Error> {
+        let err = syn::Error::new_spanned(self.field, message);
+        Err(err)
+    }
 }
