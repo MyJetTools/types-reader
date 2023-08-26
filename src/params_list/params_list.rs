@@ -148,7 +148,7 @@ impl ParamsList {
         match self {
             Self::None(token_stream) => Err(syn::Error::new_spanned(
                 token_stream.clone(),
-                "Attribute has no params",
+                format!("Field '{}' is required", param_name),
             )),
             Self::Single { token_stream, .. } => {
                 return Err(syn::Error::new_spanned(
