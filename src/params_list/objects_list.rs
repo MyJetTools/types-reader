@@ -19,9 +19,10 @@ pub fn get_list_of_elements(token_stream: TokenStream) -> Result<ParamValue, syn
                     let result = result.as_mut().unwrap();
 
                     match result {
-                        ParamValue::ObjectList { value, .. } => {
-                            value.push(ParamsList::new(group.stream())?)
-                        }
+                        ParamValue::ObjectList { value, .. } => value
+                            .push(ParamsList::new(group.stream(), || {
+                                group.clone().into_token_stream().into()
+                            })?),
                         _ => {
                             return Err(syn::Error::new_spanned(
                                 group,

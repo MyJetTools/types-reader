@@ -2,6 +2,7 @@ use crate::{get_list_of_elements, SingleValueAsIdent};
 
 use super::ParamValue;
 use proc_macro2::{Ident, TokenStream, TokenTree};
+use quote::ToTokens;
 use std::collections::{HashMap, VecDeque};
 #[derive(Debug)]
 pub enum ParamsList {
@@ -17,11 +18,19 @@ pub enum ParamsList {
 }
 
 impl ParamsList {
-    pub fn new(token_stream: TokenStream) -> Result<Self, syn::Error> {
+    pub fn new(
+        token_stream: TokenStream,
+        get_attr_name: impl Fn() -> Option<TokenStream>,
+    ) -> Result<Self, syn::Error> {
         let mut tokens: VecDeque<TokenTree> = token_stream.clone().into_iter().collect();
 
         if tokens.len() == 0 {
-            return Ok(Self::None(token_stream));
+            let mut my_token_stream = get_attr_name();
+            if my_token_stream.is_none() {
+                my_token_stream = Some(token_stream);
+            }
+
+            return Ok(Self::None(my_token_stream.unwrap()));
         }
 
         if tokens.len() == 1 {
@@ -273,7 +282,9 @@ fn read_value(ident: Ident, tokens: &mut VecDeque<TokenTree>) -> Result<ParamVal
                 }
                 proc_macro2::Delimiter::Brace => {
                     let token_stream = value.stream();
-                    let value = ParamsList::new(token_stream.clone())?;
+                    let value = ParamsList::new(token_stream.clone(), || {
+                        ident.clone().into_token_stream().into()
+                    })?;
                     let result = ParamValue::Object {
                         token_stream,
                         value: Box::new(value),
@@ -317,7 +328,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = ParamsList::new(token_stream).unwrap();
+        let params_list = ParamsList::new(token_stream, || None).unwrap();
 
         let value = params_list
             .try_get_named_param("topic_id")
@@ -344,7 +355,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = ParamsList::new(token_stream).unwrap();
+        let params_list = ParamsList::new(token_stream, || None).unwrap();
 
         let value = params_list
             .try_get_from_single_or_named("topic_id")
@@ -362,7 +373,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = ParamsList::new(token_stream).unwrap();
+        let params_list = ParamsList::new(token_stream, || None).unwrap();
 
         let value = params_list.try_get_named_param("authorized").unwrap();
 
@@ -375,7 +386,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = ParamsList::new(token_stream).unwrap();
+        let params_list = ParamsList::new(token_stream, || None).unwrap();
 
         let value = params_list.try_get_named_param("id").unwrap();
         assert_eq!(value.unwrap_as_number_value().unwrap().as_i32(), 5);
@@ -398,7 +409,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = ParamsList::new(token_stream).unwrap();
+        let params_list = ParamsList::new(token_stream, || None).unwrap();
 
         let value = params_list.try_get_named_param("id").unwrap();
         assert_eq!(value.unwrap_as_number_value().unwrap().as_i32(), -1);
@@ -415,7 +426,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = ParamsList::new(token_stream).unwrap();
+        let params_list = ParamsList::new(token_stream, || None).unwrap();
 
         let value = params_list.get_single_param().unwrap();
 
@@ -428,7 +439,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = ParamsList::new(token_stream).unwrap();
+        let params_list = ParamsList::new(token_stream, || None).unwrap();
 
         let value = params_list.get_single_param().unwrap();
 
@@ -441,7 +452,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = ParamsList::new(token_stream).unwrap();
+        let params_list = ParamsList::new(token_stream, || None).unwrap();
 
         let value = params_list.get_single_param().unwrap();
 
@@ -454,7 +465,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = ParamsList::new(token_stream).unwrap();
+        let params_list = ParamsList::new(token_stream, || None).unwrap();
 
         let value = params_list.get_single_param().unwrap();
 
@@ -467,7 +478,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = ParamsList::new(token_stream).unwrap();
+        let params_list = ParamsList::new(token_stream, || None).unwrap();
 
         let value = params_list.get_named_param("description").unwrap();
 
@@ -486,7 +497,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = ParamsList::new(token_stream).unwrap();
+        let params_list = ParamsList::new(token_stream, || None).unwrap();
 
         let value = params_list.get_named_param("description").unwrap();
 
