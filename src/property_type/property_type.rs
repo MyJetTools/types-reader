@@ -187,6 +187,14 @@ impl<'s> PropertyType<'s> {
         false
     }
 
+    pub fn is_vec(&self) -> bool {
+        if let PropertyType::VecOf(_) = self {
+            return true;
+        }
+
+        false
+    }
+
     pub fn is_u8(&self) -> bool {
         if let PropertyType::U8 = self {
             return true;
