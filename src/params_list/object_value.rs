@@ -133,7 +133,8 @@ impl TryInto<ObjectValue> for syn::Ident {
         if value == "false" {
             return Ok(ObjectValue::Bool(BoolValue::new(self, false, value)));
         }
-        return Err(syn::Error::new_spanned(value, "Unknown value ident"));
+
+        Ok(ObjectValue::Ident(ValueAsIdent::new(self, value)))
     }
 }
 
