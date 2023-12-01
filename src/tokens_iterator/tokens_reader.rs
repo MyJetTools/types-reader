@@ -2,11 +2,11 @@ use proc_macro2::token_stream::IntoIter;
 
 use crate::NextToken;
 
-pub struct TokensIterator {
+pub struct TokensReader {
     tokens: IntoIter,
 }
 
-impl TokensIterator {
+impl TokensReader {
     pub fn new(tokens: proc_macro2::TokenStream) -> Self {
         Self {
             tokens: tokens.into_iter(),

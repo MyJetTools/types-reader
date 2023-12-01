@@ -1,16 +1,16 @@
 use proc_macro2::{Delimiter, Ident};
 
-use crate::TokensIterator;
+use crate::TokensReader;
 
-pub struct ValueSingleTupleStruct {
+pub struct SingleValueTupleStruct {
     pub is_public: bool,
     pub name_ident: Ident,
     pub type_ident: Ident,
 }
 
-impl ValueSingleTupleStruct {
+impl SingleValueTupleStruct {
     pub fn new(input: proc_macro2::TokenStream) -> Result<Self, syn::Error> {
-        let mut tokens_iterator = TokensIterator::new(input);
+        let mut tokens_iterator = TokensReader::new(input);
 
         let token = tokens_iterator.read_next_token();
 
@@ -52,7 +52,7 @@ mod tests {
     #[test]
     fn test() {
         let tokens = TokenStream::from_str("pub struct EmailField(String);").unwrap();
-        let value: ValueSingleTupleStruct = ValueSingleTupleStruct::new(tokens).unwrap();
+        let value = SingleValueTupleStruct::new(tokens).unwrap();
 
         assert_eq!(value.is_public, true);
         assert_eq!(value.name_ident.to_string(), "EmailField");

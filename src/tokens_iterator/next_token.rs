@@ -1,6 +1,6 @@
 use proc_macro2::{Delimiter, TokenTree};
 
-use crate::TokensIterator;
+use crate::TokensReader;
 
 pub struct NextToken {
     token_tree: TokenTree,
@@ -33,12 +33,12 @@ impl NextToken {
     pub fn unwrap_into_group(
         self,
         expected_delimiter: Option<Delimiter>,
-    ) -> Result<TokensIterator, syn::Error> {
+    ) -> Result<TokensReader, syn::Error> {
         match self.token_tree {
             TokenTree::Group(group) => match expected_delimiter {
                 Some(delimiter) => {
                     if group.delimiter() == delimiter {
-                        Ok(TokensIterator::new(group.stream()))
+                        Ok(TokensReader::new(group.stream()))
                     } else {
                         return Err(syn::Error::new_spanned(
                             group,
@@ -46,7 +46,7 @@ impl NextToken {
                         ));
                     }
                 }
-                None => Ok(TokensIterator::new(group.stream())),
+                None => Ok(TokensReader::new(group.stream())),
             },
             _ => Err(syn::Error::new_spanned(
                 self.token_tree,
