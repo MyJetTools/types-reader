@@ -21,7 +21,7 @@ impl NextToken {
 
                     return Err(syn::Error::new_spanned(
                         ident,
-                        format!("Expected {sym} Ident"),
+                        format!("Expected Ident with content '{sym}'"),
                     ));
                 }
                 None => Ok(ident),
