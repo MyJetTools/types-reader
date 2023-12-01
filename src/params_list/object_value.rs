@@ -51,6 +51,19 @@ impl ObjectValue {
         }
     }
 
+    pub fn try_as_ident(&self) -> Option<&ValueAsIdent> {
+        match self {
+            Self::Ident(value) => Some(value),
+            _ => None,
+        }
+    }
+    pub fn as_ident(&self) -> Result<&ValueAsIdent, syn::Error> {
+        match self.try_as_ident() {
+            Some(value) => Ok(value),
+            _ => Err(self.throw_error("Type should be ident")),
+        }
+    }
+
     pub fn as_number(&self) -> Result<&NumberValue, syn::Error> {
         match self.try_as_number() {
             Some(value) => Ok(value),
