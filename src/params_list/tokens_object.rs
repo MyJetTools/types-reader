@@ -162,14 +162,14 @@ impl TokensObject {
         }
     }
 
-    pub fn unwrap_as_vec(&self) -> Result<&Vec<Self>, syn::Error> {
-        match self.try_unwrap_as_vec() {
+    pub fn get_vec(&self) -> Result<&Vec<Self>, syn::Error> {
+        match self.try_get_vec() {
             Some(value) => Ok(value),
             None => Err(self.throw_error("Value should be an object list")),
         }
     }
 
-    pub fn try_unwrap_as_vec(&self) -> Option<&Vec<Self>> {
+    pub fn try_get_vec(&self) -> Option<&Vec<Self>> {
         match self {
             Self::Vec { items, .. } => Some(items),
             _ => None,
@@ -214,10 +214,10 @@ impl TokensObject {
             return Ok(result);
         }
 
-        self.get_named_param(param_name)?.as_value()
+        self.get_named_param(param_name)?.get_value()
     }
 
-    pub fn as_value(&self) -> Result<&ObjectValue, syn::Error> {
+    pub fn get_value(&self) -> Result<&ObjectValue, syn::Error> {
         match self {
             TokensObject::Value(value) => Ok(value),
             TokensObject::None(_) => Err(self.throw_error("Can not get empty value")),
@@ -229,19 +229,19 @@ impl TokensObject {
         }
     }
 
-    pub fn try_as_value(&self) -> Option<&ObjectValue> {
+    pub fn try_get_value(&self) -> Option<&ObjectValue> {
         match self {
             TokensObject::Value(value) => Some(value),
             _ => None,
         }
     }
 
-    pub fn try_get_from_single_or_named(&self, param_name: &str) -> Option<&ObjectValue> {
+    pub fn try_get_value_from_single_or_named(&self, param_name: &str) -> Option<&ObjectValue> {
         if let Some(result) = self.try_get_single_param() {
             return Some(result);
         }
 
-        self.try_get_named_param(param_name)?.try_as_value()
+        self.try_get_named_param(param_name)?.try_get_value()
     }
 
     pub fn len(&self) -> usize {
@@ -338,7 +338,7 @@ mod tests {
         let value = params_list
             .try_get_named_param("topic_id")
             .unwrap()
-            .as_value()
+            .get_value()
             .unwrap()
             .as_string()
             .unwrap()
@@ -347,7 +347,7 @@ mod tests {
         assert_eq!("bid-ask", value);
 
         let value = params_list
-            .try_get_from_single_or_named("topic_id")
+            .try_get_value_from_single_or_named("topic_id")
             .unwrap()
             .as_string()
             .unwrap()
@@ -365,7 +365,7 @@ mod tests {
         let params_list = TokensObject::new(token_stream.into(), &|| None).unwrap();
 
         let value = params_list
-            .try_get_from_single_or_named("topic_id")
+            .try_get_value_from_single_or_named("topic_id")
             .unwrap()
             .as_string()
             .unwrap()
@@ -396,14 +396,17 @@ mod tests {
         let params_list = TokensObject::new(token_stream.into(), &|| None).unwrap();
 
         let value = params_list.try_get_named_param("id").unwrap();
-        assert_eq!(value.as_value().unwrap().as_number().unwrap().as_i32(), 5);
+        assert_eq!(value.get_value().unwrap().as_number().unwrap().as_i32(), 5);
 
         let value = params_list.try_get_named_param("name").unwrap();
-        assert_eq!(value.as_value().unwrap().as_string().unwrap().as_str(), "5");
+        assert_eq!(
+            value.get_value().unwrap().as_string().unwrap().as_str(),
+            "5"
+        );
 
         let value = params_list.try_get_named_param("description").unwrap();
         assert_eq!(
-            value.as_value().unwrap().as_string().unwrap().as_str(),
+            value.get_value().unwrap().as_string().unwrap().as_str(),
             "Persist during 5 sec"
         );
 
@@ -419,11 +422,11 @@ mod tests {
         let params_list = TokensObject::new(token_stream.into(), &|| None).unwrap();
 
         let value = params_list.try_get_named_param("id").unwrap();
-        assert_eq!(value.as_value().unwrap().as_number().unwrap().as_i32(), -1);
+        assert_eq!(value.get_value().unwrap().as_number().unwrap().as_i32(), -1);
 
         let value = params_list.try_get_named_param("description").unwrap();
         assert_eq!(
-            value.as_value().unwrap().as_string().unwrap().as_str(),
+            value.get_value().unwrap().as_string().unwrap().as_str(),
             "Table already exists"
         );
     }
@@ -435,7 +438,7 @@ mod tests {
 
         let tokens_object = TokensObject::new(token_stream.into(), &|| None).unwrap();
 
-        let value = tokens_object.as_value().unwrap();
+        let value = tokens_object.get_value().unwrap();
 
         assert_eq!(value.as_number().unwrap().as_i32(), -256);
     }
@@ -448,7 +451,7 @@ mod tests {
 
         let tokens_object = TokensObject::new(token_stream.into(), &|| None).unwrap();
 
-        let value = tokens_object.as_value().unwrap();
+        let value = tokens_object.get_value().unwrap();
 
         assert_eq!(value.as_number().unwrap().as_i32(), 256);
     }
@@ -461,7 +464,7 @@ mod tests {
 
         let params_list = TokensObject::new(token_stream.into(), &|| None).unwrap();
 
-        let value = params_list.as_value().unwrap();
+        let value = params_list.get_value().unwrap();
 
         assert_eq!(value.as_double().unwrap().as_f64(), 256.34);
     }
@@ -474,7 +477,7 @@ mod tests {
 
         let params_list = TokensObject::new(token_stream.into(), &|| None).unwrap();
 
-        let value = params_list.as_value().unwrap();
+        let value = params_list.get_value().unwrap();
 
         assert_eq!(value.as_double().unwrap().as_f64(), -256.34);
     }
@@ -490,13 +493,13 @@ mod tests {
         let value = params_list.get_named_param("description").unwrap();
 
         assert_eq!(
-            value.as_value().unwrap().as_string().unwrap().as_str(),
+            value.get_value().unwrap().as_string().unwrap().as_str(),
             "Persist table"
         );
 
         let value = params_list.get_named_param("default").unwrap();
         assert_eq!(
-            value.as_value().unwrap().as_bool().unwrap().get_value(),
+            value.get_value().unwrap().as_bool().unwrap().get_value(),
             true
         );
     }
@@ -512,13 +515,13 @@ mod tests {
         let value = params_list.get_named_param("description").unwrap();
 
         assert_eq!(
-            value.as_value().unwrap().as_string().unwrap().as_str(),
+            value.get_value().unwrap().as_string().unwrap().as_str(),
             "Persist table"
         );
 
         let value = params_list.get_named_param("default").unwrap();
         assert_eq!(
-            value.as_value().unwrap().as_bool().unwrap().get_value(),
+            value.get_value().unwrap().as_bool().unwrap().get_value(),
             false
         );
     }
@@ -533,18 +536,18 @@ mod tests {
 
         let value = params_list.get_named_param("string_param").unwrap();
         assert_eq!(
-            value.as_value().unwrap().as_string().unwrap().as_str(),
+            value.get_value().unwrap().as_string().unwrap().as_str(),
             "Persist table"
         );
 
         let object = params_list.get_named_param("object_param").unwrap();
 
         let value = object.get_named_param("first_object_param").unwrap();
-        assert_eq!(value.as_value().unwrap().as_number().unwrap().as_i32(), 1);
+        assert_eq!(value.get_value().unwrap().as_number().unwrap().as_i32(), 1);
 
         let value = object.get_named_param("second_object_param").unwrap();
         assert_eq!(
-            value.as_value().unwrap().as_bool().unwrap().get_value(),
+            value.get_value().unwrap().as_bool().unwrap().get_value(),
             true
         );
     }
@@ -559,36 +562,36 @@ mod tests {
 
         let value = params_list.get_named_param("first_param").unwrap();
         assert_eq!(
-            value.as_value().unwrap().as_string().unwrap().as_str(),
+            value.get_value().unwrap().as_string().unwrap().as_str(),
             "Value"
         );
 
         let array_value = params_list.get_named_param("array_of_object").unwrap();
-        let objects = array_value.unwrap_as_vec().unwrap();
+        let objects = array_value.get_vec().unwrap();
 
         assert_eq!(2, objects.len());
 
         let first_object = objects.get(0).unwrap();
 
         let value = first_object.get_named_param("first_object_param").unwrap();
-        assert_eq!(value.as_value().unwrap().as_number().unwrap().as_i32(), 1);
+        assert_eq!(value.get_value().unwrap().as_number().unwrap().as_i32(), 1);
 
         let value = first_object.get_named_param("second_object_param").unwrap();
         assert_eq!(
-            value.as_value().unwrap().as_bool().unwrap().get_value(),
+            value.get_value().unwrap().as_bool().unwrap().get_value(),
             true
         );
 
         let second_object = objects.get(1).unwrap();
 
         let value = second_object.get_named_param("first_object_param").unwrap();
-        assert_eq!(value.as_value().unwrap().as_number().unwrap().as_i32(), 2);
+        assert_eq!(value.get_value().unwrap().as_number().unwrap().as_i32(), 2);
 
         let value = second_object
             .get_named_param("second_object_param")
             .unwrap();
         assert_eq!(
-            value.as_value().unwrap().as_bool().unwrap().get_value(),
+            value.get_value().unwrap().as_bool().unwrap().get_value(),
             false
         );
     }

@@ -113,7 +113,7 @@ impl<'s> Attributes<'s> {
         param_name: &str,
     ) -> Option<&'s ObjectValue> {
         let attr = self.try_get_attr(attr_name)?;
-        attr.try_get_from_single_or_named(param_name)
+        attr.try_get_value_from_single_or_named(param_name)
     }
 
     pub fn try_get_single_or_named_params<'d>(
@@ -124,7 +124,7 @@ impl<'s> Attributes<'s> {
         let attr = self.try_get_attr(attr_name)?;
 
         for param_name in param_names {
-            if let Some(value) = attr.try_get_from_single_or_named(param_name) {
+            if let Some(value) = attr.try_get_value_from_single_or_named(param_name) {
                 return Some(value);
             }
         }
