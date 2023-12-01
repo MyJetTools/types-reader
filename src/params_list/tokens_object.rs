@@ -89,6 +89,13 @@ impl TokensObject {
     pub fn create_empty(token_stream: TokenStream) -> Self {
         Self::None(token_stream)
     }
+
+    pub fn has_no_value(&self) -> bool {
+        match self {
+            TokensObject::None(_) => true,
+            _ => false,
+        }
+    }
     pub fn get_single_param_as_ident(&self) -> Result<&ValueAsIdent, syn::Error> {
         match self {
             Self::None(token_stream) => Err(syn::Error::new_spanned(
