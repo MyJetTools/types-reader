@@ -13,33 +13,33 @@ impl SingleValueTupleStruct {
     pub fn new(input: proc_macro2::TokenStream) -> Result<Self, syn::Error> {
         let mut token_reader = TokensReader::new(input);
 
-        let token = token_reader.read_next_token();
+        let token = token_reader.read_next_token()?;
 
         let ident = token.unwrap_into_ident(None)?;
 
         let name = ident.to_string();
 
         let is_public = if name == "pub" {
-            let token = token_reader.read_next_token();
+            let token = token_reader.read_next_token()?;
             token.unwrap_into_ident(Some("struct"))?;
             true
         } else {
             false
         };
 
-        let name_ident = token_reader.read_next_token().unwrap_into_ident(None)?;
+        let name_ident = token_reader.read_next_token()?.unwrap_into_ident(None)?;
 
         let mut token_iterator = token_reader
-            .read_next_token()
+            .read_next_token()?
             .unwrap_into_group(Delimiter::Parenthesis.into())?;
 
         let mut is_type_public = false;
 
-        let mut type_ident = token_iterator.read_next_token().unwrap_into_ident(None)?;
+        let mut type_ident = token_iterator.read_next_token()?.unwrap_into_ident(None)?;
 
         if type_ident.to_string() == "pub" {
             is_type_public = true;
-            type_ident = token_iterator.read_next_token().unwrap_into_ident(None)?;
+            type_ident = token_iterator.read_next_token()?.unwrap_into_ident(None)?;
         }
 
         Ok(Self {

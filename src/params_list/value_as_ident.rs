@@ -1,11 +1,11 @@
 use proc_macro2::Ident;
 #[derive(Debug)]
-pub struct SingleValueAsIdent {
+pub struct ValueAsIdent {
     ident: Ident,
     value: String,
 }
 
-impl SingleValueAsIdent {
+impl ValueAsIdent {
     pub fn new(ident: Ident, value: String) -> Self {
         Self { ident, value }
     }

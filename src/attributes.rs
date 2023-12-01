@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use proc_macro2::TokenStream;
 use quote::ToTokens;
 
-use crate::{ParamValue, ParamsList};
+use crate::{ObjectValue, TokensObject};
 
 pub struct Attributes<'s> {
-    attrs: HashMap<String, Vec<ParamsList>>,
+    attrs: HashMap<String, Vec<TokensObject>>,
     root: &'s syn::DeriveInput,
 }
 
@@ -20,9 +20,9 @@ impl<'s> Attributes<'s> {
             let attr_name_as_str = attr_name.to_string();
 
             let param_list = if let Some(token_stream) = token_stream {
-                ParamsList::new(token_stream, || Some(attr_name.clone()))?
+                TokensObject::new(token_stream.into(), &|| Some(attr_name.clone()))?
             } else {
-                ParamsList::create_empty(attr_name)
+                TokensObject::create_empty(attr_name)
             };
 
             if !attrs.contains_key(&attr_name_as_str) {
@@ -39,7 +39,7 @@ impl<'s> Attributes<'s> {
 
     pub fn check_for_unknown_params(
         &self,
-        check: impl Fn(&str, &ParamsList) -> Result<(), syn::Error>,
+        check: impl Fn(&str, &TokensObject) -> Result<(), syn::Error>,
     ) -> Result<(), syn::Error> {
         for (attr_name, params_list) in &self.attrs {
             for param_list in params_list {
@@ -52,7 +52,7 @@ impl<'s> Attributes<'s> {
         Ok(())
     }
 
-    pub fn get_attr(&'s self, attr_name: &str) -> Result<&'s ParamsList, syn::Error> {
+    pub fn get_attr(&'s self, attr_name: &str) -> Result<&'s TokensObject, syn::Error> {
         let attr = self.attrs.get(attr_name);
 
         if attr.is_none() {
@@ -65,13 +65,13 @@ impl<'s> Attributes<'s> {
         Ok(attr.unwrap().get(0).unwrap())
     }
 
-    pub fn try_get_attr(&'s self, attr_name: &str) -> Option<&'s ParamsList> {
+    pub fn try_get_attr(&'s self, attr_name: &str) -> Option<&'s TokensObject> {
         let attr = self.attrs.get(attr_name)?;
 
         Some(attr.get(0).unwrap())
     }
 
-    pub fn get_attrs(&'s self, attr_name: &str) -> Result<&'s Vec<ParamsList>, syn::Error> {
+    pub fn get_attrs(&'s self, attr_name: &str) -> Result<&'s Vec<TokensObject>, syn::Error> {
         let attr = self.attrs.get(attr_name);
 
         if attr.is_none() {
@@ -84,7 +84,7 @@ impl<'s> Attributes<'s> {
         Ok(attr.unwrap())
     }
 
-    pub fn try_get_attrs(&'s self, attr_name: &str) -> Option<&'s Vec<ParamsList>> {
+    pub fn try_get_attrs(&'s self, attr_name: &str) -> Option<&'s Vec<TokensObject>> {
         self.attrs.get(attr_name)
     }
 
@@ -92,7 +92,7 @@ impl<'s> Attributes<'s> {
         &'s self,
         attr_name: &str,
         param_name: &str,
-    ) -> Result<&'s ParamValue, syn::Error> {
+    ) -> Result<&'s TokensObject, syn::Error> {
         let attr = self.get_attr(attr_name)?;
         attr.get_named_param(param_name)
     }
@@ -101,7 +101,7 @@ impl<'s> Attributes<'s> {
         &'s self,
         attr_name: &str,
         param_name: &str,
-    ) -> Result<&'s ParamValue, syn::Error> {
+    ) -> Result<&'s ObjectValue, syn::Error> {
         let attr = self.get_attr(attr_name)?;
 
         attr.get_from_single_or_named(param_name)
@@ -111,7 +111,7 @@ impl<'s> Attributes<'s> {
         &'s self,
         attr_name: &str,
         param_name: &str,
-    ) -> Option<&'s ParamValue> {
+    ) -> Option<&'s ObjectValue> {
         let attr = self.try_get_attr(attr_name)?;
         attr.try_get_from_single_or_named(param_name)
     }
@@ -120,7 +120,7 @@ impl<'s> Attributes<'s> {
         &'s self,
         attr_name: &str,
         param_names: impl Iterator<Item = &'d str>,
-    ) -> Option<&'s ParamValue> {
+    ) -> Option<&'s ObjectValue> {
         let attr = self.try_get_attr(attr_name)?;
 
         for param_name in param_names {
@@ -160,11 +160,11 @@ impl<'s> Attributes<'s> {
         false
     }
 
-    pub fn remove(&'s mut self, name: &str) -> Option<Vec<ParamsList>> {
+    pub fn remove(&'s mut self, name: &str) -> Option<Vec<TokensObject>> {
         self.attrs.remove(name)
     }
 
-    pub fn get_attr_names(&'s self) -> std::collections::hash_map::Keys<String, Vec<ParamsList>> {
+    pub fn get_attr_names(&'s self) -> std::collections::hash_map::Keys<String, Vec<TokensObject>> {
         self.attrs.keys()
     }
 }

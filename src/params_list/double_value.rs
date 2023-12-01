@@ -1,13 +1,15 @@
 use proc_macro2::Literal;
+
+use crate::TokenValue;
 #[derive(Debug)]
 pub struct DoubleValue {
-    literal: Literal,
+    literal: TokenValue,
     value: f64,
     str_value: String,
 }
 
 impl DoubleValue {
-    pub fn new(literal: Literal, value: f64, str_value: String) -> Self {
+    pub fn new(literal: TokenValue, value: f64, str_value: String) -> Self {
         Self {
             literal,
             value,
@@ -20,7 +22,7 @@ impl DoubleValue {
     }
 
     pub fn as_literal(&self) -> &Literal {
-        &self.literal
+        self.literal.as_literal()
     }
 
     pub fn as_f64(&self) -> f64 {

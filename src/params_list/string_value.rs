@@ -1,14 +1,16 @@
 use std::{ops::Deref, str::FromStr};
 
 use proc_macro2::Literal;
+
+use crate::TokenValue;
 #[derive(Debug)]
 pub struct StringValue {
-    literal: Literal,
+    literal: TokenValue,
     value: String,
 }
 
 impl StringValue {
-    pub fn new(literal: Literal, value: String) -> Self {
+    pub fn new(literal: TokenValue, value: String) -> Self {
         Self { literal, value }
     }
 
@@ -25,7 +27,7 @@ impl StringValue {
     }
 
     pub fn as_literal(&self) -> &Literal {
-        &self.literal
+        self.literal.as_literal()
     }
 
     pub fn to_rust_code(&self) -> Result<proc_macro2::TokenStream, syn::Error> {
