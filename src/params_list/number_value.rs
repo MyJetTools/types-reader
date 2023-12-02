@@ -69,3 +69,63 @@ impl NumberValue {
         syn::Error::new_spanned(self.as_literal(), message)
     }
 }
+
+impl<'s> Into<u8> for &'s NumberValue {
+    fn into(self) -> u8 {
+        self.as_u8()
+    }
+}
+
+impl<'s> Into<i8> for &'s NumberValue {
+    fn into(self) -> i8 {
+        self.as_i8()
+    }
+}
+
+impl<'s> Into<u16> for &'s NumberValue {
+    fn into(self) -> u16 {
+        self.as_u16()
+    }
+}
+
+impl<'s> Into<i16> for &'s NumberValue {
+    fn into(self) -> i16 {
+        self.as_i16()
+    }
+}
+
+impl<'s> Into<u32> for &'s NumberValue {
+    fn into(self) -> u32 {
+        self.as_u32()
+    }
+}
+
+impl<'s> Into<i32> for &'s NumberValue {
+    fn into(self) -> i32 {
+        self.as_i32()
+    }
+}
+
+impl<'s> Into<u64> for &'s NumberValue {
+    fn into(self) -> u64 {
+        self.as_u64()
+    }
+}
+
+impl<'s> Into<i64> for &'s NumberValue {
+    fn into(self) -> i64 {
+        self.as_i64()
+    }
+}
+
+impl<'s> Into<usize> for &'s NumberValue {
+    fn into(self) -> usize {
+        self.as_usize()
+    }
+}
+
+impl<'s> Into<isize> for &'s NumberValue {
+    fn into(self) -> isize {
+        self.as_isize()
+    }
+}

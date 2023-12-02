@@ -22,3 +22,15 @@ impl ValueAsIdent {
         syn::Error::new_spanned(&self.ident, message)
     }
 }
+
+impl<'s> Into<&'s str> for &'s ValueAsIdent {
+    fn into(self) -> &'s str {
+        self.as_str()
+    }
+}
+
+impl<'s> Into<String> for &'s ValueAsIdent {
+    fn into(self) -> String {
+        self.as_str().to_string()
+    }
+}

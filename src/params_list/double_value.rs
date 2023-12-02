@@ -49,3 +49,15 @@ impl DoubleValue {
         syn::Error::new_spanned(self.as_literal(), message)
     }
 }
+
+impl<'s> Into<f32> for &'s DoubleValue {
+    fn into(self) -> f32 {
+        self.as_f32()
+    }
+}
+
+impl<'s> Into<f64> for &'s DoubleValue {
+    fn into(self) -> f64 {
+        self.as_f64()
+    }
+}
