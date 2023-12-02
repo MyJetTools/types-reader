@@ -8,6 +8,16 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
     let result = quote::quote! {
         impl #ident{
 
+            pub fn new(src: proc_macro::TokenStream)->Result<Self, syn::Error>{
+                use types_reader::*;
+
+                let src:proc_macro2::TokenStream = src.into();
+
+                let params_list = TokensObject::new(attr.into(), &||None)?;
+
+                todo!("Implement")
+            }
+
         }
     };
 
