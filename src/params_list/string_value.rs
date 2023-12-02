@@ -1,6 +1,7 @@
 use std::{ops::Deref, str::FromStr};
 
 use proc_macro2::Literal;
+use quote::ToTokens;
 
 use crate::TokenValue;
 #[derive(Debug)]
@@ -67,5 +68,11 @@ impl Deref for StringValue {
 
     fn deref(&self) -> &Self::Target {
         self.as_str()
+    }
+}
+
+impl ToTokens for StringValue {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        self.value.to_tokens(tokens)
     }
 }
