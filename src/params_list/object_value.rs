@@ -92,7 +92,7 @@ impl ObjectValue {
         }
     }
 
-    pub fn get_value<TResult: FromStr>(
+    pub fn parse<TResult: FromStr>(
         &self,
         err_msg: Option<impl Into<StrOrString<'static>>>,
     ) -> Result<TResult, syn::Error> {
