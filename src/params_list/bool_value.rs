@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use syn::Ident;
 #[derive(Debug)]
 pub struct BoolValue {
@@ -35,5 +37,12 @@ impl BoolValue {
 impl<'s> Into<bool> for &'s BoolValue {
     fn into(self) -> bool {
         self.value
+    }
+}
+
+impl Deref for BoolValue {
+    type Target = bool;
+    fn deref(&self) -> &Self::Target {
+        &self.value
     }
 }

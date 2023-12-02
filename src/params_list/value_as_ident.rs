@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use proc_macro2::Ident;
 #[derive(Debug)]
 pub struct ValueAsIdent {
@@ -32,5 +34,13 @@ impl<'s> Into<&'s str> for &'s ValueAsIdent {
 impl<'s> Into<String> for &'s ValueAsIdent {
     fn into(self) -> String {
         self.as_str().to_string()
+    }
+}
+
+impl Deref for ValueAsIdent {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_str()
     }
 }
