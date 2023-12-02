@@ -226,7 +226,7 @@ impl<'s> PropertyType<'s> {
             PropertyType::USize => quote!(usize),
             PropertyType::ISize => quote!(isize),
             PropertyType::String => quote!(String),
-            PropertyType::Str => todo!("get_token_stream Str is not supported"),
+            PropertyType::Str => quote!(&str),
             PropertyType::Bool => quote!(bool),
             PropertyType::DateTime => quote!(DateTimeAsMicroseconds),
             PropertyType::OptionOf(sub_type) => {
@@ -264,7 +264,7 @@ impl<'s> PropertyType<'s> {
             PropertyType::USize => quote!(usize),
             PropertyType::ISize => quote!(isize),
             PropertyType::String => quote!(String),
-            PropertyType::Str => todo!("get_token_stream Str is not supported"),
+            PropertyType::Str => quote!(&str),
             PropertyType::Bool => quote!(bool),
             PropertyType::DateTime => quote!(DateTimeAsMicroseconds),
             PropertyType::OptionOf(sub_type) => {

@@ -111,7 +111,7 @@ mod tests {
                     GetActiveWithdrawalsStream >, tonic :: Status > > { return __ret ; }
                     let __self = self ; let request = request ; let __ret : Result < tonic
                     :: Response < Self :: GetActiveWithdrawalsStream >, tonic :: Status >
-                    = { let request = request.into_inner() ; todo! ("Implement me") } ;
+                    = { let request = request.into_inner() ; panic! ("Implement me") } ;
                     #[allow(unreachable_code)] __ret
                 })
             }
