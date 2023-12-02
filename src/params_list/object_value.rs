@@ -202,3 +202,21 @@ impl TryInto<ObjectValue> for TokenValue {
         }
     }
 }
+
+impl<'s> TryInto<&'s str> for &'s ObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<&'s str, Self::Error> {
+        let value = self.as_string()?.as_str();
+        Ok(value)
+    }
+}
+
+impl<'s> TryInto<String> for &'s ObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<String, Self::Error> {
+        let value = self.as_string()?.as_str();
+        Ok(value.to_string())
+    }
+}
