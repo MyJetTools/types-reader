@@ -56,6 +56,12 @@ impl Into<String> for StringValue {
     }
 }
 
+impl<'s> Into<String> for &'s StringValue {
+    fn into(self) -> String {
+        self.as_str().to_string()
+    }
+}
+
 impl Deref for StringValue {
     type Target = str;
 
