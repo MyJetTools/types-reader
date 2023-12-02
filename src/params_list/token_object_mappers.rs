@@ -5,7 +5,8 @@ impl<'s> TryInto<&'s str> for &'s TokensObject {
 
     fn try_into(self) -> Result<&'s str, Self::Error> {
         let value = self.get_value()?;
-        value.get_any_value_as_str()
+        let result = value.as_string()?;
+        Ok(result.as_str())
     }
 }
 
@@ -14,7 +15,7 @@ impl<'s> TryInto<String> for &'s TokensObject {
 
     fn try_into(self) -> Result<String, Self::Error> {
         let value = self.get_value()?;
-        let value = value.get_any_value_as_str()?;
+        let value = value.as_string()?;
         Ok(value.to_string())
     }
 }
