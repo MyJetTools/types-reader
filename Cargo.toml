@@ -1,12 +1,2 @@
-[package]
-name = "types-reader"
-version = "0.4.0"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-syn = { version = "*", features = ["extra-traits"] }
-proc-macro2 = "*"
-quote = "*"
-rust-extensions = { tag = "0.1.4", git = "https://github.com/MyJetTools/rust-extensions.git" }
+[workspace]
+members = ["types-reader", "types-reader-core"]
