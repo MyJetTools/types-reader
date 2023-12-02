@@ -31,3 +31,9 @@ impl BoolValue {
         syn::Error::new_spanned(self.as_ident(), message)
     }
 }
+
+impl<'s> Into<bool> for &'s BoolValue {
+    fn into(self) -> bool {
+        self.value
+    }
+}
