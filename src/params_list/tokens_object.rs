@@ -243,6 +243,21 @@ impl TokensObject {
         }
     }
 
+    pub fn get_value_from_single_or_named(
+        &self,
+        param_name: &str,
+    ) -> Result<&ObjectValue, syn::Error> {
+        if let Some(result) = self.try_get_single_param() {
+            return Ok(result);
+        }
+
+        if let Some(result) = self.try_get_named_param(param_name) {
+            return result.get_value();
+        }
+
+        Err(self.throw_error(format!("Field '{}' is required", param_name).as_str()))
+    }
+
     pub fn try_get_value_from_single_or_named(&self, param_name: &str) -> Option<&ObjectValue> {
         if let Some(result) = self.try_get_single_param() {
             return Some(result);
