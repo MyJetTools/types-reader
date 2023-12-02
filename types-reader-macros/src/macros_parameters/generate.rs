@@ -13,7 +13,7 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
 
                 let src:proc_macro2::TokenStream = src.into();
 
-                let params_list = TokensObject::new(attr.into(), &||None)?;
+                let params_list = TokensObject::new(src.into(), &||None)?;
 
                 todo!("Implement")
             }
