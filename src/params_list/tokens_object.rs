@@ -328,26 +328,6 @@ impl TokensObject {
     }
 }
 
-impl<'s> TryInto<&'s str> for &'s TokensObject {
-    type Error = syn::Error;
-
-    fn try_into(self) -> Result<&'s str, Self::Error> {
-        let value = self.get_value()?;
-        let value = value.as_string()?.as_str();
-        Ok(value)
-    }
-}
-
-impl<'s> TryInto<String> for &'s TokensObject {
-    type Error = syn::Error;
-
-    fn try_into(self) -> Result<String, Self::Error> {
-        let value = self.get_value()?;
-        let value = value.as_string()?.as_str();
-        Ok(value.to_string())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use std::str::FromStr;
