@@ -1,9 +1,22 @@
+use std::str::FromStr;
+
+use rust_extensions::StrOrString;
+
 use crate::TokensObject;
 
 impl TokensObject {
     pub fn try_into_any_value_as_str(&self) -> Result<&str, syn::Error> {
         let value = self.get_value()?;
         value.get_any_value_as_str()
+    }
+
+    pub fn parse_as_value<TResult: FromStr>(
+        &self,
+        err_msg: Option<impl Into<StrOrString<'static>>>,
+    ) -> Result<TResult, syn::Error> {
+        let value = self.get_value()?;
+        let result = value.parse(err_msg)?;
+        Ok(result)
     }
 }
 
