@@ -1,4 +1,5 @@
 use proc_macro2::Literal;
+use quote::ToTokens;
 
 use crate::TokenValue;
 #[derive(Debug)]
@@ -127,5 +128,11 @@ impl<'s> Into<usize> for &'s NumberValue {
 impl<'s> Into<isize> for &'s NumberValue {
     fn into(self) -> isize {
         self.as_isize()
+    }
+}
+
+impl ToTokens for NumberValue {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        self.value.to_tokens(tokens)
     }
 }
