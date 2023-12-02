@@ -1,5 +1,12 @@
 use crate::TokensObject;
 
+impl TokensObject {
+    pub fn try_into_any_value_as_str(&self) -> Result<&str, syn::Error> {
+        let value = self.get_value()?;
+        value.get_any_value_as_str()
+    }
+}
+
 impl<'s> TryInto<&'s str> for &'s TokensObject {
     type Error = syn::Error;
 
