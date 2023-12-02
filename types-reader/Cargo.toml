@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 types-reader-core = { path = "../types-reader-core" }
+types-reader-macros = { path = "../types-reader-macros" }

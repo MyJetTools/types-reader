@@ -1,2 +1,2 @@
 [workspace]
-members = ["types-reader", "types-reader-core"]
+members = ["types-reader", "types-reader-core", "types-reader-macros"]
