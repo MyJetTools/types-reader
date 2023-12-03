@@ -1,41 +1,35 @@
-use proc_macro2::{Delimiter, Literal, TokenTree};
+use proc_macro2::{Delimiter, Group, Ident, Punct};
 use rust_extensions::StrOrString;
 
-use crate::{TokenValue, TokensReader};
+use crate::{ReferenceToken, TokenValue, TokensReader};
 
+#[derive(Debug)]
 pub enum NextToken {
-    Single(TokenTree),
-    AsLiteralWithNegativeValue(Literal),
+    Ident(Ident),
+    Literal(TokenValue),
+    Group(Group),
+    Punct(Punct),
+    Reference(ReferenceToken),
 }
 
 impl NextToken {
-    pub fn new(token_tree: TokenTree) -> Self {
-        Self::Single(token_tree)
-    }
-
     pub fn try_unwrap_as_value(self) -> Result<TokenValue, Self> {
         match self {
-            Self::Single(value) => match value {
-                TokenTree::Literal(value) => Ok(TokenValue::new(value, false)),
-                _ => Err(Self::Single(value)),
-            },
-            Self::AsLiteralWithNegativeValue(value) => Ok(TokenValue::new(value, true)),
+            Self::Ident(value) => Err(Self::Ident(value)),
+            Self::Literal(value) => Ok(value),
+            Self::Group(value) => Err(Self::Group(value)),
+            Self::Punct(value) => Err(Self::Punct(value)),
+            Self::Reference(value) => Err(Self::Reference(value)),
         }
     }
 
     pub fn try_unwrap_into_ident(self) -> Result<syn::Ident, Self> {
-        if self.is_literal_with_negative_value() {
-            return Err(self);
-        }
-
         match self {
-            Self::Single(value) => match value {
-                TokenTree::Ident(ident) => Ok(ident),
-                _ => Err(Self::Single(value)),
-            },
-            Self::AsLiteralWithNegativeValue(_) => {
-                panic!("Somehow we are here");
-            }
+            Self::Ident(value) => Ok(value),
+            Self::Literal(value) => Err(Self::Literal(value)),
+            Self::Group(value) => Err(Self::Group(value)),
+            Self::Punct(value) => Err(Self::Punct(value)),
+            Self::Reference(value) => Err(Self::Reference(value)),
         }
     }
 
@@ -63,95 +57,81 @@ impl NextToken {
         expected_delimiter: Option<Delimiter>,
     ) -> Result<TokensReader, syn::Error> {
         match self {
-            Self::Single(value) => match value {
-                TokenTree::Group(group) => match expected_delimiter {
-                    Some(delimiter) => {
-                        if group.delimiter() == delimiter {
-                            return Ok(TokensReader::new(group.stream()));
-                        } else {
-                            return Err(syn::Error::new_spanned(
-                                group,
-                                format!("Expected Group with delimiter: {delimiter:?}"),
-                            ));
-                        }
+            Self::Group(group) => match expected_delimiter {
+                Some(delimiter) => {
+                    if group.delimiter() == delimiter {
+                        return Ok(TokensReader::new(group.stream()));
+                    } else {
+                        return Err(syn::Error::new_spanned(
+                            group,
+                            format!("Expected Group with delimiter: {delimiter:?}"),
+                        ));
                     }
-                    None => return Ok(TokensReader::new(group.stream())),
-                },
-                _ => {
-                    return Err(syn::Error::new_spanned(value, format!("Expected Group")));
                 }
+                None => return Ok(TokensReader::new(group.stream())),
             },
-            Self::AsLiteralWithNegativeValue(value) => {
-                return Err(syn::Error::new_spanned(value, format!("Expected Group")));
-            }
+            _ => {}
         }
+        Err(self.throw_error("Group is expected"))
     }
 
     pub fn try_unwrap_into_group(
         self,
         expected_delimiter: Option<Delimiter>,
-    ) -> Result<(TokensReader, Delimiter), NextToken> {
-        if self.is_literal_with_negative_value() {
-            return Err(self);
-        }
-
+    ) -> Result<(TokensReader, Delimiter), Self> {
         match self {
-            Self::Single(value) => match &value {
-                TokenTree::Group(group) => match expected_delimiter {
-                    Some(delimiter) => {
-                        if group.delimiter() == delimiter {
-                            return Ok((TokensReader::new(group.stream()), delimiter));
-                        } else {
-                            return Err(NextToken::Single(value));
-                        }
+            NextToken::Group(group) => match expected_delimiter {
+                Some(delimiter) => {
+                    if group.delimiter() == delimiter {
+                        return Ok((TokensReader::new(group.stream()), delimiter));
+                    } else {
+                        return Err(Self::Group(group));
                     }
-                    None => return Ok((TokensReader::new(group.stream()), group.delimiter())),
-                },
-                _ => {
-                    return Err(NextToken::Single(value));
                 }
+                None => return Ok((TokensReader::new(group.stream()), group.delimiter())),
             },
-            Self::AsLiteralWithNegativeValue(_) => {
-                panic!("Somehow we are here")
-            }
+            Self::Ident(value) => Err(Self::Ident(value)),
+            Self::Literal(value) => Err(Self::Literal(value)),
+            Self::Punct(value) => Err(Self::Punct(value)),
+            Self::Reference(value) => Err(Self::Reference(value)),
         }
     }
 
     pub fn if_spacing(&self, symbols: Option<&[char]>) -> bool {
         match self {
-            Self::Single(token_tree) => {
-                if let TokenTree::Punct(punct) = &token_tree {
-                    match symbols {
-                        Some(symbols) => {
-                            for c in symbols {
-                                if punct.as_char() == *c {
-                                    return true;
-                                }
-                            }
-
-                            return false;
+            Self::Punct(punct) => match symbols {
+                Some(symbols) => {
+                    for c in symbols {
+                        if punct.as_char() == *c {
+                            return true;
                         }
-                        None => return true,
                     }
+
+                    return false;
                 }
-            }
-            Self::AsLiteralWithNegativeValue(_) => {}
+                None => return true,
+            },
+            _ => {}
         }
 
         false
     }
 
-    pub fn throw_error(&self, message: impl Into<StrOrString<'static>>) -> syn::Error {
-        let message: StrOrString<'_> = message.into();
+    pub fn unwrap_into_spacing(self) -> Result<Punct, syn::Error> {
         match self {
-            Self::Single(value) => syn::Error::new_spanned(value, message.as_str()),
-            Self::AsLiteralWithNegativeValue(value) => {
-                syn::Error::new_spanned(value, message.as_str())
-            }
+            Self::Punct(punct) => Ok(punct),
+            _ => Err(self.throw_error("Expected spacing")),
         }
     }
 
-    pub fn is_literal_with_negative_value(&self) -> bool {
-        matches!(self, Self::AsLiteralWithNegativeValue(_))
+    pub fn throw_error(&self, message: impl Into<StrOrString<'static>>) -> syn::Error {
+        let message: StrOrString<'_> = message.into();
+        match self {
+            Self::Ident(value) => syn::Error::new_spanned(value, message.as_str()),
+            Self::Literal(value) => syn::Error::new_spanned(value.as_literal(), message.as_str()),
+            Self::Group(value) => syn::Error::new_spanned(value, message.as_str()),
+            Self::Punct(value) => syn::Error::new_spanned(value, message.as_str()),
+            Self::Reference(value) => value.throw_error(message),
+        }
     }
 }

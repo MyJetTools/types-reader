@@ -20,19 +20,11 @@ pub enum TokensObject {
 const SPACE_SYMBOLS: [char; 2] = [';', ','];
 
 impl TokensObject {
-    pub fn new(
-        mut token_reader: TokensReader,
-        get_attr_name: &impl Fn() -> Option<TokenStream>,
-    ) -> Result<Self, syn::Error> {
+    pub fn new(mut token_reader: TokensReader) -> Result<Self, syn::Error> {
         let next_token = token_reader.try_read_next_token()?;
 
         if next_token.is_none() {
-            let mut my_token_stream = get_attr_name();
-            if my_token_stream.is_none() {
-                my_token_stream = Some(token_reader.into_token_stream());
-            }
-
-            return Ok(Self::None(my_token_stream.unwrap()));
+            return Ok(Self::None(token_reader.into_token_stream()));
         }
 
         let next_token = next_token.unwrap();
@@ -61,7 +53,7 @@ impl TokensObject {
             } else if token_equal.if_spacing(Some(&[':', '='])) {
                 let token_value = token_reader.read_next_token()?;
                 let id = ident.to_string();
-                items.insert(id, Self::read_value(token_value, get_attr_name)?);
+                items.insert(id, Self::read_value(token_value)?);
             }
 
             let next_token = token_reader.try_read_next_token()?;
@@ -282,10 +274,7 @@ impl TokensObject {
         }
     }
 
-    fn read_value(
-        token_value: NextToken,
-        get_attr_name: &impl Fn() -> Option<TokenStream>,
-    ) -> Result<Self, syn::Error> {
+    fn read_value(token_value: NextToken) -> Result<Self, syn::Error> {
         let next_token = match token_value.try_unwrap_as_value() {
             Ok(token_value) => return Ok(Self::Value(token_value.try_into()?)),
             Err(next_token) => next_token,
@@ -299,14 +288,14 @@ impl TokensObject {
         let next_token = match next_token.try_unwrap_into_group(None) {
             Ok((group_tokens, delimiter)) => match delimiter {
                 proc_macro2::Delimiter::Bracket => {
-                    let (items, token_stream) = Self::parse_as_array(group_tokens, get_attr_name)?;
+                    let (items, token_stream) = Self::parse_as_array(group_tokens)?;
                     return Ok(Self::Vec {
                         token_stream,
                         items,
                     });
                 }
                 proc_macro2::Delimiter::Brace => {
-                    return Ok(Self::new(group_tokens, get_attr_name)?);
+                    return Ok(Self::new(group_tokens)?);
                 }
                 _ => panic!(
                     "Value can not be parsed from group {:?} of tokens",
@@ -321,7 +310,6 @@ impl TokensObject {
 
     pub fn parse_as_array(
         mut token_reader: TokensReader,
-        get_attr_name: &impl Fn() -> Option<TokenStream>,
     ) -> Result<(Vec<TokensObject>, TokenStream), syn::Error> {
         let mut result: Vec<TokensObject> = Vec::new();
 
@@ -335,7 +323,7 @@ impl TokensObject {
                 token = next_token.unwrap();
             }
 
-            let param_value = Self::read_value(token, get_attr_name)?;
+            let param_value = Self::read_value(token)?;
             result.push(param_value);
         }
 
@@ -355,7 +343,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = TokensObject::new(token_stream.into(), &|| None).unwrap();
+        let params_list = TokensObject::new(token_stream.into()).unwrap();
 
         let value = params_list
             .try_get_named_param("topic_id")
@@ -384,7 +372,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = TokensObject::new(token_stream.into(), &|| None).unwrap();
+        let params_list = TokensObject::new(token_stream.into()).unwrap();
 
         let value = params_list
             .try_get_value_from_single_or_named("topic_id")
@@ -402,7 +390,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = TokensObject::new(token_stream.into(), &|| None).unwrap();
+        let params_list = TokensObject::new(token_stream.into()).unwrap();
 
         let value = params_list.try_get_named_param("authorized").unwrap();
 
@@ -415,7 +403,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = TokensObject::new(token_stream.into(), &|| None).unwrap();
+        let params_list = TokensObject::new(token_stream.into()).unwrap();
 
         let value = params_list.try_get_named_param("id").unwrap();
         assert_eq!(value.get_value().unwrap().as_number().unwrap().as_i32(), 5);
@@ -441,7 +429,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = TokensObject::new(token_stream.into(), &|| None).unwrap();
+        let params_list = TokensObject::new(token_stream.into()).unwrap();
 
         let value = params_list.try_get_named_param("id").unwrap();
         assert_eq!(value.get_value().unwrap().as_number().unwrap().as_i32(), -1);
@@ -458,7 +446,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let tokens_object = TokensObject::new(token_stream.into(), &|| None).unwrap();
+        let tokens_object = TokensObject::new(token_stream.into()).unwrap();
 
         let value = tokens_object.get_value().unwrap();
 
@@ -471,7 +459,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let tokens_object = TokensObject::new(token_stream.into(), &|| None).unwrap();
+        let tokens_object = TokensObject::new(token_stream.into()).unwrap();
 
         let value = tokens_object.get_value().unwrap();
 
@@ -484,7 +472,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = TokensObject::new(token_stream.into(), &|| None).unwrap();
+        let params_list = TokensObject::new(token_stream.into()).unwrap();
 
         let value = params_list.get_value().unwrap();
 
@@ -497,7 +485,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = TokensObject::new(token_stream.into(), &|| None).unwrap();
+        let params_list = TokensObject::new(token_stream.into()).unwrap();
 
         let value = params_list.get_value().unwrap();
 
@@ -510,7 +498,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = TokensObject::new(token_stream.into(), &|| None).unwrap();
+        let params_list = TokensObject::new(token_stream.into()).unwrap();
 
         let value = params_list.get_named_param("description").unwrap();
 
@@ -532,7 +520,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = TokensObject::new(token_stream.into(), &|| None).unwrap();
+        let params_list = TokensObject::new(token_stream.into()).unwrap();
 
         let value = params_list.get_named_param("description").unwrap();
 
@@ -554,7 +542,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = TokensObject::new(token_stream.into(), &|| None).unwrap();
+        let params_list = TokensObject::new(token_stream.into()).unwrap();
 
         let value = params_list.get_named_param("string_param").unwrap();
         assert_eq!(
@@ -580,7 +568,7 @@ mod tests {
 
         let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
 
-        let params_list = TokensObject::new(token_stream.into(), &|| None).unwrap();
+        let params_list = TokensObject::new(token_stream.into()).unwrap();
 
         let value = params_list.get_named_param("first_param").unwrap();
         assert_eq!(

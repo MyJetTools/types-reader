@@ -155,7 +155,7 @@ impl TryInto<ObjectValue> for TokenValue {
     type Error = syn::Error;
 
     fn try_into(self) -> Result<ObjectValue, Self::Error> {
-        let is_negative = self.negative_value;
+        let is_negative = self.is_negative();
         let mut value = self.to_string();
 
         if value.starts_with('"') || value.starts_with("'") {
@@ -218,5 +218,113 @@ impl<'s> TryInto<String> for &'s ObjectValue {
     fn try_into(self) -> Result<String, Self::Error> {
         let value = self.as_string()?.as_str();
         Ok(value.to_string())
+    }
+}
+
+impl<'s> TryInto<i8> for &'s ObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<i8, Self::Error> {
+        let value = self.as_number()?.as_i8();
+        Ok(value)
+    }
+}
+
+impl<'s> TryInto<u8> for &'s ObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<u8, Self::Error> {
+        let value = self.as_number()?.as_u8();
+        Ok(value)
+    }
+}
+
+impl<'s> TryInto<i16> for &'s ObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<i16, Self::Error> {
+        let value = self.as_number()?.as_i16();
+        Ok(value)
+    }
+}
+
+impl<'s> TryInto<u16> for &'s ObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<u16, Self::Error> {
+        let value = self.as_number()?.as_u16();
+        Ok(value)
+    }
+}
+
+impl<'s> TryInto<i32> for &'s ObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<i32, Self::Error> {
+        let value = self.as_number()?.as_i32();
+        Ok(value)
+    }
+}
+
+impl<'s> TryInto<u32> for &'s ObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<u32, Self::Error> {
+        let value = self.as_number()?.as_u32();
+        Ok(value)
+    }
+}
+
+impl<'s> TryInto<i64> for &'s ObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<i64, Self::Error> {
+        let value = self.as_number()?.as_i64();
+        Ok(value)
+    }
+}
+
+impl<'s> TryInto<u64> for &'s ObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<u64, Self::Error> {
+        let value = self.as_number()?.as_u64();
+        Ok(value)
+    }
+}
+
+impl<'s> TryInto<isize> for &'s ObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<isize, Self::Error> {
+        let value = self.as_number()?.as_isize();
+        Ok(value)
+    }
+}
+
+impl<'s> TryInto<usize> for &'s ObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<usize, Self::Error> {
+        let value = self.as_number()?.as_usize();
+        Ok(value)
+    }
+}
+
+impl<'s> TryInto<f32> for &'s ObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<f32, Self::Error> {
+        let value = self.as_double()?.as_f32();
+        Ok(value)
+    }
+}
+
+impl<'s> TryInto<f64> for &'s ObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<f64, Self::Error> {
+        let value = self.as_double()?.as_f64();
+        Ok(value)
     }
 }

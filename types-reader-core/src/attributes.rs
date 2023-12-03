@@ -20,7 +20,7 @@ impl<'s> Attributes<'s> {
             let attr_name_as_str = attr_name.to_string();
 
             let param_list = if let Some(token_stream) = token_stream {
-                TokensObject::new(token_stream.into(), &|| Some(attr_name.clone()))?
+                TokensObject::new(token_stream.into())?
             } else {
                 TokensObject::create_empty(attr_name)
             };
