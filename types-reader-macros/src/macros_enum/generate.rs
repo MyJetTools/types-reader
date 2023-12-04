@@ -8,8 +8,7 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
 
     let src_fields = EnumCase::read(&ast)?;
 
-    let mut try_into_cases = Vec::new();
-    let mut into_cases = Vec::new();
+    let mut try_from_str_cases = Vec::new();
 
     let mut supported_cases = String::new();
 
@@ -31,21 +30,16 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
         let case_as_str = super::utils::get_enum_str_value(&src)?;
         let case_as_str = case_as_str.as_str();
 
-        if try_into_cases.len() > 0 {
+        if try_from_str_cases.len() > 0 {
             supported_cases.push_str(",");
         }
 
         supported_cases.push('\'');
         supported_cases.push_str(case_as_str);
-        try_into_cases.push(quote::quote! {
-            if value == #case_as_str{
-                return Ok(#name_ident::#case_ident);
-            }
-        });
 
-        into_cases.push(quote::quote! {
-            if self == #case_as_str{
-                return #name_ident::#case_ident;
+        try_from_str_cases.push(quote::quote! {
+            if value == #case_as_str{
+                return Some(Self::#case_ident);
             }
         });
         supported_cases.push('\'');
@@ -97,14 +91,53 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
     let result = quote::quote! {
 
 
+        impl #name_ident {
+            pub fn try_from_str(value: &str) -> Option<Self> {
+                #( #try_from_str_cases )*
+                None
+            }
+        }
+
+
         impl<'s> TryInto<#name_ident> for &'s types_reader::ObjectValue{
             type Error = syn::Error;
             fn try_into(self) -> Result<#name_ident, Self::Error> {
                 let value = self.as_string()?.as_str();
 
-                #( #try_into_cases )*
+                if let Some(value) = #name_ident::try_from_str(value){
+                    return Ok(value);
+                }
 
-                panic!("Unsupported value: {}. Supported values are: {}", value, #supported_cases);
+
+           let err = self.throw_error(
+              format!(
+                  "Unsupported value: {}. Supported values are: {}",
+                  value, #supported_cases
+              )
+              .as_str(),
+             );
+             Err(err)
+            }
+        }
+
+        impl<'s> TryInto<#name_ident> for types_reader::AnyValueAsStr<'s>{
+            type Error = syn::Error;
+            fn try_into(self) -> Result<#name_ident, Self::Error> {
+                let value = self.as_str();
+
+                if let Some(value) = #name_ident::try_from_str(value){
+                    return Ok(value);
+                }
+
+
+           let err = self.throw_error(
+              format!(
+                  "Unsupported value: {}. Supported values are: {}",
+                  value, #supported_cases
+              )
+              .as_str(),
+             );
+             Err(err)
             }
         }
 
@@ -114,13 +147,6 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
                 #( #generated_model_cases )*
                 let value = self.get_value()?;
                 Ok(value.try_into()?)
-            }
-        }
-
-        impl<'s> Into<#name_ident> for &'s str{
-            fn into(self) -> #name_ident {
-                #( #into_cases )*
-                panic!("Unsupported value: {}. Supported values are: {}", self, #supported_cases);
             }
         }
 

@@ -8,7 +8,6 @@ pub enum MyEnum {
     #[default]
     Case2,
 }
-
 #[cfg(test)]
 mod tests {
     use crate::test_enums::test_default_case::MyEnum;

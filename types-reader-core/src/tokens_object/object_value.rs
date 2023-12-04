@@ -2,7 +2,9 @@ use std::str::FromStr;
 
 use rust_extensions::StrOrString;
 
-use crate::{BoolValue, DoubleValue, NumberValue, StringValue, TokenValue, ValueAsIdent};
+use crate::{
+    AnyValueAsStr, BoolValue, DoubleValue, NumberValue, StringValue, TokenValue, ValueAsIdent,
+};
 
 #[derive(Debug)]
 pub enum ObjectValue {
@@ -120,16 +122,8 @@ impl ObjectValue {
         }
     }
 
-    pub fn get_any_value_as_str(&self) -> Result<&str, syn::Error> {
-        let result = match self {
-            Self::String(value) => value.as_str(),
-            Self::Number(value) => value.as_str(),
-            Self::Double(value) => value.as_str(),
-            Self::Bool(value) => value.as_str(),
-            Self::Ident(value) => value.as_str(),
-        };
-
-        Ok(result)
+    pub fn get_any_value_as_str(&self) -> AnyValueAsStr {
+        AnyValueAsStr::new(self)
     }
 }
 
@@ -202,8 +196,6 @@ impl TryInto<ObjectValue> for TokenValue {
         }
     }
 }
-
-
 
 impl<'s> TryInto<&'s str> for &'s ObjectValue {
     type Error = syn::Error;

@@ -2,12 +2,12 @@ use std::str::FromStr;
 
 use rust_extensions::StrOrString;
 
-use crate::TokensObject;
+use crate::{AnyValueAsStr, TokensObject};
 
 impl TokensObject {
-    pub fn try_into_any_value_as_str(&self) -> Result<&str, syn::Error> {
+    pub fn try_into_any_value_as_str(&self) -> Result<AnyValueAsStr, syn::Error> {
         let value = self.get_value()?;
-        value.get_any_value_as_str()
+        Ok(value.get_any_value_as_str())
     }
 
     pub fn parse_as_value<TResult: FromStr>(
