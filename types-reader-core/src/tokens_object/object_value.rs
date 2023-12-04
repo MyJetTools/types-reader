@@ -122,8 +122,8 @@ impl ObjectValue {
         }
     }
 
-    pub fn get_any_value_as_str(&self) -> AnyValueAsStr {
-        AnyValueAsStr::new(self)
+    pub fn any_value_as_str<'s>(&'s self) -> &'s dyn AnyValueAsStr<'s> {
+        self
     }
 }
 
@@ -194,6 +194,24 @@ impl TryInto<ObjectValue> for TokenValue {
                 return Err(syn::Error::new_spanned(self.as_literal(), "Unknown type"));
             }
         }
+    }
+}
+
+impl<'s> AnyValueAsStr<'s> for ObjectValue {
+    fn as_str(&'s self) -> &str {
+        let result = match self {
+            ObjectValue::String(value) => value.as_str(),
+            ObjectValue::Number(value) => value.as_str(),
+            ObjectValue::Double(value) => value.as_str(),
+            ObjectValue::Bool(value) => value.as_str(),
+            ObjectValue::Ident(value) => value.as_str(),
+        };
+
+        result
+    }
+
+    fn throw_error(&self, message: &str) -> syn::Error {
+        self.throw_error(message)
     }
 }
 

@@ -88,6 +88,17 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
         quote::quote!()
     };
 
+    let try_into_error = quote::quote! {
+        let err = self.throw_error(
+            format!(
+                "Unsupported value: {}. Supported values are: {}",
+                value, #supported_cases
+            )
+            .as_str(),
+           );
+           Err(err)
+    };
+
     let result = quote::quote! {
 
 
@@ -108,36 +119,8 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
                     return Ok(value);
                 }
 
+                #try_into_error
 
-           let err = self.throw_error(
-              format!(
-                  "Unsupported value: {}. Supported values are: {}",
-                  value, #supported_cases
-              )
-              .as_str(),
-             );
-             Err(err)
-            }
-        }
-
-        impl<'s> TryInto<#name_ident> for types_reader::AnyValueAsStr<'s>{
-            type Error = syn::Error;
-            fn try_into(self) -> Result<#name_ident, Self::Error> {
-                let value = self.as_str();
-
-                if let Some(value) = #name_ident::try_from_str(value){
-                    return Ok(value);
-                }
-
-
-           let err = self.throw_error(
-              format!(
-                  "Unsupported value: {}. Supported values are: {}",
-                  value, #supported_cases
-              )
-              .as_str(),
-             );
-             Err(err)
             }
         }
 
@@ -147,6 +130,20 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
                 #( #generated_model_cases )*
                 let value = self.get_value()?;
                 Ok(value.try_into()?)
+            }
+        }
+
+        impl<'s> TryInto<#name_ident> for &'s dyn types_reader::AnyValueAsStr<'s> {
+            type Error = syn::Error;
+
+            fn try_into(self) -> Result<#name_ident, Self::Error> {
+                let value = self.as_str();
+
+                if let Some(value) = #name_ident::try_from_str(value) {
+                    return Ok(value);
+                }
+
+                #try_into_error
             }
         }
 

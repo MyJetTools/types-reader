@@ -59,7 +59,7 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
                 if ident_is_allowed {
                     reading_props.push(
                         quote::quote!(#prop_ident: if let Some(value) = self.#opt_fn_name(#prop_name){
-                        Some(value.get_value()?.get_any_value_as_str().try_into()?)
+                        Some(value.get_value()?.any_value_as_str().try_into()?)
                     }else{
                         None
                     }, ),
@@ -87,7 +87,7 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
         } else {
             if ident_is_allowed {
                 reading_props.push(quote::quote! {
-                    #prop_ident: self.#fn_name(#prop_name)?.get_value()?.get_any_value_as_str().try_into()?,
+                    #prop_ident: self.#fn_name(#prop_name)?.get_value()?.any_value_as_str().try_into()?,
                 });
             } else {
                 reading_props.push(quote::quote! {
