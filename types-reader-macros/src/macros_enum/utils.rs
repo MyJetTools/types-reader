@@ -19,12 +19,3 @@ pub fn get_enum_str_value<'s>(case: &'s EnumCase) -> Result<StrOrString<'s>, syn
 pub fn has_default_attribute(case: &EnumCase) -> bool {
     case.attrs.try_get_attr("default").is_some()
 }
-
-pub enum BrokerPlatfromType {
-    Mt4,
-    Mt5,
-}
-
-pub trait GetPartitionKeyByPlatformType {
-    fn get_partition_key_by_platform_type(&self) -> &str;
-}
