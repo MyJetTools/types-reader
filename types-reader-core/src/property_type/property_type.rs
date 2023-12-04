@@ -19,7 +19,6 @@ pub const U_SIZE: &str = "usize";
 pub const I_SIZE: &str = "isize";
 pub const BOOL: &str = "bool";
 pub const STRING: &str = "String";
-pub const STR: &str = "&str";
 pub const DATE_TIME: &str = "DateTimeAsMicroseconds";
 
 pub enum PropertyType<'s> {
@@ -36,28 +35,40 @@ pub enum PropertyType<'s> {
     USize,
     ISize,
     String,
-    Str,
     Bool,
     DateTime,
     OptionOf(Box<PropertyType<'s>>),
     VecOf(Box<PropertyType<'s>>),
     Struct(String, &'s TypePath),
     HashMap(Box<PropertyType<'s>>, Box<PropertyType<'s>>),
+    RefTo {
+        ty: Box<PropertyType<'s>>,
+        lifetime: Option<&'s syn::Lifetime>,
+    },
 }
 
 impl<'s> PropertyType<'s> {
     pub fn new(field: &'s syn::Field) -> Self {
-        match &field.ty {
+        Self::from_ty(&field.ty)
+    }
+
+    pub fn from_ty(ty: &'s syn::Type) -> Self {
+        match ty {
             syn::Type::Slice(_) => panic!("Slice type is not supported"),
             syn::Type::Array(_) => panic!("Array type is not supported"),
             syn::Type::Ptr(_) => panic!("Ptr type is not supported"),
-            syn::Type::Reference(_) => PropertyType::Str,
+            syn::Type::Reference(ref_to) => {
+                return Self::RefTo {
+                    ty: Box::new(Self::from_ty(&ref_to.elem)),
+                    lifetime: ref_to.lifetime.as_ref(),
+                }
+            }
             syn::Type::BareFn(_) => panic!("BareFn type is not supported"),
             syn::Type::Never(_) => panic!("Never type is not supported"),
             syn::Type::Tuple(_) => panic!("Tuple type is not supported"),
             syn::Type::Path(type_path) => {
                 let type_as_string = super::utils::simple_type_to_string(type_path);
-                return PropertyType::parse(type_as_string, type_path);
+                return Self::parse(type_as_string, type_path);
             }
             syn::Type::TraitObject(_) => panic!("TraitObject type is not supported"),
             syn::Type::ImplTrait(_) => panic!("ImplTrait type is not supported"),
@@ -66,7 +77,7 @@ impl<'s> PropertyType<'s> {
             syn::Type::Infer(_) => panic!("Infer type is not supported"),
             syn::Type::Macro(_) => panic!("Macro type is not supported"),
             syn::Type::Verbatim(_) => panic!("Verbatim type is not supported"),
-            _ => panic!("{:?} type is not supported", &field.ty),
+            _ => panic!("{:?} type is not supported", &ty),
         }
     }
 
@@ -112,7 +123,6 @@ impl<'s> PropertyType<'s> {
             PropertyType::USize => AsStr::create_as_str(U_SIZE),
             PropertyType::ISize => AsStr::create_as_str(I_SIZE),
             PropertyType::String => AsStr::create_as_str(STRING),
-            PropertyType::Str => AsStr::create_as_str(STR),
             PropertyType::Bool => AsStr::create_as_str(BOOL),
             PropertyType::DateTime => AsStr::create_as_str(DATE_TIME),
 
@@ -125,11 +135,13 @@ impl<'s> PropertyType<'s> {
             PropertyType::HashMap(key, value) => {
                 AsStr::create_as_string(format!("HashMap::<{},{}>", key.as_str(), value.as_str()))
             }
-            PropertyType::Struct(_, type_path) => {
-                panic!(
-                    "Struct type is not supported in as_str method: {:?}",
-                    type_path
-                )
+            PropertyType::Struct(ty, _) => AsStr::AsStr(ty),
+            PropertyType::RefTo { ty, lifetime } => {
+                if let Some(lt) = lifetime {
+                    AsStr::create_as_string(format!("&{}{}", lt, ty.as_str()))
+                } else {
+                    AsStr::create_as_string(format!("&{}", ty.as_str()))
+                }
             }
         }
     }
@@ -149,7 +161,6 @@ impl<'s> PropertyType<'s> {
             PropertyType::USize => true,
             PropertyType::ISize => true,
             PropertyType::String => true,
-            PropertyType::Str => false,
             PropertyType::Bool => true,
             _ => false,
         }
@@ -226,7 +237,6 @@ impl<'s> PropertyType<'s> {
             PropertyType::USize => quote!(usize),
             PropertyType::ISize => quote!(isize),
             PropertyType::String => quote!(String),
-            PropertyType::Str => quote!(&str),
             PropertyType::Bool => quote!(bool),
             PropertyType::DateTime => quote!(DateTimeAsMicroseconds),
             PropertyType::OptionOf(sub_type) => {
@@ -246,6 +256,14 @@ impl<'s> PropertyType<'s> {
                 let name = proc_macro2::TokenStream::from_str(name).unwrap();
                 quote!(#name)
             }
+            PropertyType::RefTo { ty, lifetime } => {
+                let ty = ty.get_token_stream();
+                if let Some(lt) = lifetime {
+                    quote!(&#lt #ty)
+                } else {
+                    quote!(&#ty)
+                }
+            }
         }
     }
 
@@ -264,7 +282,6 @@ impl<'s> PropertyType<'s> {
             PropertyType::USize => quote!(usize),
             PropertyType::ISize => quote!(isize),
             PropertyType::String => quote!(String),
-            PropertyType::Str => quote!(&str),
             PropertyType::Bool => quote!(bool),
             PropertyType::DateTime => quote!(DateTimeAsMicroseconds),
             PropertyType::OptionOf(sub_type) => {
@@ -289,6 +306,14 @@ impl<'s> PropertyType<'s> {
                 }
 
                 proc_macro2::TokenStream::from_str(&as_str).unwrap()
+            }
+            PropertyType::RefTo { ty, lifetime } => {
+                let ty = ty.get_token_stream();
+                if let Some(lt) = lifetime {
+                    quote!(&#lt #ty)
+                } else {
+                    quote!(&#ty)
+                }
             }
         }
     }

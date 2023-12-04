@@ -175,6 +175,13 @@ impl TokensObject {
         }
     }
 
+    pub fn is_object(&self) -> bool {
+        match self {
+            Self::Object { .. } => true,
+            _ => false,
+        }
+    }
+
     pub fn try_get_single_param(&self) -> Option<&ObjectValue> {
         match self {
             Self::Value(value) => Some(value),
@@ -328,6 +335,14 @@ impl TokensObject {
         }
 
         Ok((result, token_reader.into_token_stream()))
+    }
+}
+
+impl TryInto<TokensObject> for proc_macro2::TokenStream {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<TokensObject, Self::Error> {
+        TokensObject::new(self.into())
     }
 }
 

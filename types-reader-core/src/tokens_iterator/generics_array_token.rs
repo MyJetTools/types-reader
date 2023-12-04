@@ -82,6 +82,10 @@ impl GenericsArrayToken {
 
         quote::quote!(<#(#inners)*>)
     }
+
+    pub fn get_first_life_time(&self) -> Option<&LifeTimeToken> {
+        self.content.first()
+    }
 }
 
 #[cfg(test)]

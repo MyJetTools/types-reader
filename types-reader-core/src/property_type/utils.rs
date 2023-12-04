@@ -5,11 +5,7 @@ pub fn get_generic(type_path: &syn::TypePath) -> PropertyType {
         if let syn::PathArguments::AngleBracketed(args) = &path.arguments {
             for arg in &args.args {
                 if let syn::GenericArgument::Type(ty) = &arg {
-                    if let syn::Type::Path(tp) = ty {
-                        for path in &tp.path.segments {
-                            return PropertyType::parse(path.ident.to_string(), tp);
-                        }
-                    }
+                    return PropertyType::from_ty(ty);
                 }
             }
         }
