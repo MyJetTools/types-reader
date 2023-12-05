@@ -164,14 +164,6 @@ impl TypeName {
     }
 }
 
-impl TryFrom<proc_macro2::TokenStream> for TypeName {
-    type Error = syn::Error;
-
-    fn try_from(value: proc_macro2::TokenStream) -> Result<Self, Self::Error> {
-        Self::from_token_stream(value)
-    }
-}
-
 fn read_name_with_generics(
     tokens_reader: &mut TokensReader,
     reference: Option<ReferenceToken>,
@@ -251,6 +243,14 @@ impl<'s> TryInto<TypeName> for &syn::DeriveInput {
 
     fn try_into(self) -> Result<TypeName, Self::Error> {
         TypeName::from_derive_input(self)
+    }
+}
+
+impl TryInto<TypeName> for proc_macro2::TokenStream {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<TypeName, Self::Error> {
+        TypeName::from_token_stream(self)
     }
 }
 
