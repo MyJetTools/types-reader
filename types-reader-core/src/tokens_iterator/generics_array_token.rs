@@ -19,7 +19,12 @@ pub struct GenericsArrayToken {
 }
 
 impl GenericsArrayToken {
-    pub fn new(tokens_reader: &mut TokensReader) -> Result<Self, syn::Error> {
+    pub fn new() -> Self {
+        Self {
+            content: Vec::new(),
+        }
+    }
+    pub fn from_tokens_reader(tokens_reader: &mut TokensReader) -> Result<Self, syn::Error> {
         let next_token =
             tokens_reader.get_next_token(None, "Reading First Literal token failed")?;
 
@@ -167,7 +172,7 @@ mod tests {
         let src = proc_macro2::TokenStream::from_str("<'a>").unwrap();
         let mut tokens_reader = TokensReader::new(src);
 
-        let token = GenericsArrayToken::new(&mut tokens_reader).unwrap();
+        let token = GenericsArrayToken::from_tokens_reader(&mut tokens_reader).unwrap();
 
         assert_eq!("< 'a >", token.to_token_stream().to_string())
     }
@@ -177,7 +182,7 @@ mod tests {
         let src = proc_macro2::TokenStream::from_str("<'a, 'b>").unwrap();
         let mut tokens_reader = TokensReader::new(src);
 
-        let token = GenericsArrayToken::new(&mut tokens_reader).unwrap();
+        let token = GenericsArrayToken::from_tokens_reader(&mut tokens_reader).unwrap();
 
         assert_eq!("< 'a , 'b >", token.to_token_stream().to_string())
     }
@@ -187,7 +192,7 @@ mod tests {
         let src = proc_macro2::TokenStream::from_str("<'a, MyStructure>").unwrap();
         let mut tokens_reader = TokensReader::new(src);
 
-        let token = GenericsArrayToken::new(&mut tokens_reader).unwrap();
+        let token = GenericsArrayToken::from_tokens_reader(&mut tokens_reader).unwrap();
 
         assert_eq!("< 'a , MyStructure >", token.to_token_stream().to_string())
     }

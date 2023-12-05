@@ -37,7 +37,7 @@ impl TypeName {
         let generics = if ast.generics.lifetimes().count() > 0 {
             let generics = &ast.generics;
             let mut tokens_reader = TokensReader::new(quote::quote!(#generics));
-            Some(GenericsArrayToken::new(&mut tokens_reader)?)
+            Some(GenericsArrayToken::from_tokens_reader(&mut tokens_reader)?)
         } else {
             None
         };
@@ -203,7 +203,7 @@ fn read_name_with_generics(
 
     if let Some(next_token) = next_token {
         if next_token == '<' {
-            let generics = GenericsArrayToken::new(tokens_reader)?;
+            let generics = GenericsArrayToken::from_tokens_reader(tokens_reader)?;
             return Ok(TypeName {
                 reference,
                 path: vec_of_ident,
