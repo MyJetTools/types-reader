@@ -50,8 +50,20 @@ impl TypeName {
         })
     }
 
-    pub fn has_life_time(&self) -> bool {
-        self.generics.is_some()
+    pub fn get_any_life_time(&self) -> Option<&LifeTimeToken> {
+        if let Some(generics) = self.generics.as_ref() {
+            if let Some(life_time) = generics.get_first_life_time() {
+                return Some(life_time);
+            }
+        }
+
+        if let Some(reference) = self.reference.as_ref() {
+            if let Some(life_time) = reference.get_lifetime() {
+                return Some(life_time);
+            }
+        }
+
+        None
     }
 
     pub fn has_generics(&self) -> bool {

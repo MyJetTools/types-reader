@@ -87,6 +87,23 @@ impl GenericsArrayToken {
         Ok(Self { content })
     }
 
+    fn has_life_time(&mut self, name: &str) -> bool {
+        for itm in &self.content {
+            if let GenericItem::LifeTime(life_time) = itm {
+                if life_time.as_str() == name {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    pub fn add_life_time_if_not_exists(&mut self, life_time: LifeTimeToken) {
+        if !self.has_life_time(life_time.as_str()) {
+            self.content.push(GenericItem::LifeTime(life_time));
+        }
+    }
+
     pub fn to_token_stream(&self) -> proc_macro2::TokenStream {
         let mut inners = Vec::new();
 
@@ -100,6 +117,9 @@ impl GenericsArrayToken {
             }
         }
 
+        if inners.len() == 0 {
+            return quote::quote!();
+        }
         quote::quote!(<#(#inners)*>)
     }
 

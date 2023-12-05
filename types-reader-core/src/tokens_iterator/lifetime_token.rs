@@ -5,6 +5,7 @@ use crate::{TokensReader, TokensTreeExt};
 #[derive(Debug)]
 pub struct LifeTimeToken {
     name: syn::Ident,
+    as_string: String,
 }
 
 impl LifeTimeToken {
@@ -21,7 +22,18 @@ impl LifeTimeToken {
 
         let name = next_token.unwrap_as_ident()?;
 
-        Ok(Self { name })
+        let as_string = name.to_string();
+
+        Ok(Self { name, as_string })
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.as_string
+    }
+
+    pub fn to_generic_before_ident_token_stream(&self) -> proc_macro2::TokenStream {
+        proc_macro2::token_stream::TokenStream::from_str(format!("<'{}>", self.name).as_str())
+            .unwrap()
     }
 
     pub fn to_token_stream(&self) -> proc_macro2::TokenStream {

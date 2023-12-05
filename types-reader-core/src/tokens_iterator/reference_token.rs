@@ -47,6 +47,10 @@ impl ReferenceToken {
         })
     }
 
+    pub fn get_lifetime(&self) -> Option<&LifeTimeToken> {
+        self.life_time.as_ref()
+    }
+
     pub fn throw_error(&self, msg: StrOrString<'static>) -> syn::Error {
         syn::Error::new_spanned(&self.start_token, msg.as_str())
     }
