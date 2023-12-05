@@ -14,4 +14,5 @@ mod tokens_iterator;
 pub use tokens_iterator::*;
 mod structure_schema;
 pub use structure_schema::*;
-pub mod type_name;
+mod type_name;
+pub use type_name::*;
