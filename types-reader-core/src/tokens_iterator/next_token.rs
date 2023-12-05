@@ -134,4 +134,14 @@ impl NextToken {
             Self::Reference(value) => value.throw_error(message),
         }
     }
+
+    pub fn to_token_stream(&self) -> proc_macro2::TokenStream {
+        match self {
+            Self::Ident(value) => quote::quote!(#value),
+            Self::Literal(value) => value.to_token_stream(),
+            Self::Group(value) => quote::quote!(#value),
+            Self::Punct(value) => quote::quote!(#value),
+            Self::Reference(value) => value.to_token_stream(),
+        }
+    }
 }

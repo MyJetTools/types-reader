@@ -1,7 +1,21 @@
 use crate::{LifeTimeToken, TokensReader, TokensTreeExt};
 
+pub enum GenericItem {
+    LifeTime(LifeTimeToken),
+    Raw(proc_macro2::TokenStream),
+}
+
+impl GenericItem {
+    pub fn to_token_stream(&self) -> proc_macro2::TokenStream {
+        match self {
+            GenericItem::LifeTime(life_time) => life_time.to_token_stream(),
+            GenericItem::Raw(raw) => raw.clone(),
+        }
+    }
+}
+
 pub struct GenericsArrayToken {
-    content: Vec<LifeTimeToken>,
+    content: Vec<GenericItem>,
 }
 
 impl GenericsArrayToken {
@@ -38,28 +52,34 @@ impl GenericsArrayToken {
         loop {
             let next_token = tokens_reader.peek_next_token("Expecting some token going on")?;
 
-            let next_token = next_token.unwrap_as_punct_char();
+            match next_token {
+                crate::PeekedToken::Ident => {
+                    let token = read_raw(tokens_reader)?;
+                    content.push(GenericItem::Raw(token));
+                }
+                crate::PeekedToken::Punct(punct) => match punct {
+                    '\'' => {
+                        let life_time = LifeTimeToken::new(tokens_reader)?;
+                        content.push(GenericItem::LifeTime(life_time));
+                    }
+                    '>' => {
+                        tokens_reader.read_next_token()?;
+                        break;
+                    }
+                    ',' => {
+                        tokens_reader.read_next_token()?;
+                    }
+                    _ => {
+                        let next_token = tokens_reader.read_next_token()?;
+                        return Err(next_token.throw_error("Invalid token"));
+                    }
+                },
+                crate::PeekedToken::Literal => {
+                    return Err(tokens_reader.throw_error("Unexpected literal"));
+                }
 
-            if next_token.is_none() {
-                return Err(
-                    tokens_reader.throw_error("Expected next token after open generics bracket")
-                );
-            }
-
-            match next_token.unwrap() {
-                '\'' => {
-                    let life_time = LifeTimeToken::new(tokens_reader)?;
-                    content.push(life_time);
-                }
-                '>' => {
-                    tokens_reader.read_next_token()?;
-                    break;
-                }
-                ',' => {
-                    tokens_reader.read_next_token()?;
-                }
-                _ => {
-                    return Err(syn::Error::new_spanned(next_token, "Invalid token"));
+                crate::PeekedToken::Group(_) => {
+                    return Err(tokens_reader.throw_error("Unexpected group"));
                 }
             }
         }
@@ -84,8 +104,35 @@ impl GenericsArrayToken {
     }
 
     pub fn get_first_life_time(&self) -> Option<&LifeTimeToken> {
-        self.content.first()
+        for itm in &self.content {
+            if let GenericItem::LifeTime(life_time) = itm {
+                return Some(life_time);
+            }
+        }
+        None
     }
+}
+
+fn read_raw(tokens_reader: &mut TokensReader) -> Result<proc_macro2::TokenStream, syn::Error> {
+    let mut raw = Vec::new();
+
+    loop {
+        let next_token = tokens_reader.peek_next_token("Expecting some token going on")?;
+
+        if let Some(symbol) = next_token.unwrap_as_punct_char() {
+            if symbol == ',' {
+                break;
+            }
+            if symbol == '>' {
+                break;
+            }
+        }
+
+        let next_token = tokens_reader.read_next_token()?;
+        raw.push(next_token.to_token_stream());
+    }
+
+    return Ok(quote::quote!(#(#raw)*));
 }
 
 #[cfg(test)]
@@ -113,5 +160,15 @@ mod tests {
         let token = GenericsArrayToken::new(&mut tokens_reader).unwrap();
 
         assert_eq!("< 'a , 'b >", token.to_token_stream().to_string())
+    }
+
+    #[test]
+    fn test_generic_with_lifetime_and_type() {
+        let src = proc_macro2::TokenStream::from_str("<'a, MyStructure>").unwrap();
+        let mut tokens_reader = TokensReader::new(src);
+
+        let token = GenericsArrayToken::new(&mut tokens_reader).unwrap();
+
+        assert_eq!("< 'a , MyStructure >", token.to_token_stream().to_string())
     }
 }

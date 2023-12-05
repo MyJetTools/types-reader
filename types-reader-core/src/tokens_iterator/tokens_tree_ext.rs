@@ -12,6 +12,8 @@ pub trait TokensTreeExt {
     fn unwrap_as_punct(self) -> Result<proc_macro2::Punct, syn::Error>;
 
     fn unwrap_as_group(self) -> Result<proc_macro2::Group, syn::Error>;
+
+    fn throw_error<T>(&self, message: &str) -> Result<T, syn::Error>;
 }
 
 impl TokensTreeExt for TokenTree {
@@ -62,5 +64,9 @@ impl TokensTreeExt for TokenTree {
             TokenTree::Punct(punct) => Ok(punct),
             _ => Err(syn::Error::new_spanned(self, "Expecting punct here")),
         }
+    }
+
+    fn throw_error<T>(&self, message: &str) -> Result<T, syn::Error> {
+        Err(syn::Error::new_spanned(self, message))
     }
 }

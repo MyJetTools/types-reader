@@ -1,12 +1,36 @@
-use crate::{GenericsArrayToken, LifeTimeToken, ReferenceToken, TokensReader};
+use crate::{
+    GenericsArrayToken, LifeTimeToken, PeekedToken, ReferenceToken, TokensReader, TokensTreeExt,
+};
 
 pub struct TypeName {
     reference: Option<ReferenceToken>,
+    path: Vec<syn::Ident>,
     name: syn::Ident,
     generics: Option<GenericsArrayToken>,
 }
 
 impl TypeName {
+    pub fn from_token_stream(token_stream: proc_macro2::TokenStream) -> Result<Self, syn::Error> {
+        let mut tokens_reader = TokensReader::new(token_stream);
+
+        let next_peeked_token = tokens_reader.peek_next_token("Expected struct name")?;
+
+        if next_peeked_token.is_ident() {
+            return read_name_with_generics(&mut tokens_reader, None);
+        }
+
+        if !next_peeked_token.is_punct() {
+            return Err(tokens_reader.throw_error("Expected struct name or reference"));
+        }
+
+        if next_peeked_token.unwrap_as_punct_char().unwrap() == '&' {
+            let reference = ReferenceToken::new(&mut tokens_reader)?;
+            return read_name_with_generics(&mut tokens_reader, Some(reference));
+        }
+
+        Err(tokens_reader.throw_error("Expected struct name or reference"))
+    }
+
     pub fn from_derive_input(ast: &syn::DeriveInput) -> Result<Self, syn::Error> {
         let name = &ast.ident;
 
@@ -20,6 +44,7 @@ impl TypeName {
 
         Ok(Self {
             reference: None,
+            path: Vec::new(),
             name: name.clone(),
             generics,
         })
@@ -54,6 +79,12 @@ impl TypeName {
     }
 
     pub fn to_token_stream(&self) -> proc_macro2::TokenStream {
+        let mut path = Vec::new();
+
+        for path_step in &self.path {
+            path.push(quote::quote!(#path_step::))
+        }
+
         let name = &self.name;
 
         let generics = if let Some(generics) = &self.generics {
@@ -65,14 +96,14 @@ impl TypeName {
         let reference = match &self.reference {
             Some(reference) => reference.to_token_stream(),
             None => {
-                return quote::quote! {#name #generics};
+                return quote::quote! {#(#path)* #name #generics};
             }
         };
 
         let name = &self.name;
 
         quote::quote! {
-            #reference #name #generics
+            #reference #(#path)* #name #generics
         }
     }
 
@@ -137,24 +168,7 @@ impl TryFrom<proc_macro2::TokenStream> for TypeName {
     type Error = syn::Error;
 
     fn try_from(value: proc_macro2::TokenStream) -> Result<Self, Self::Error> {
-        let mut tokens_reader = TokensReader::new(value);
-
-        let next_peeked_token = tokens_reader.peek_next_token("Expected struct name")?;
-
-        if next_peeked_token.is_ident() {
-            return read_name_with_generics(&mut tokens_reader, None);
-        }
-
-        if !next_peeked_token.is_punct() {
-            return Err(tokens_reader.throw_error("Expected struct name or reference"));
-        }
-
-        if next_peeked_token.unwrap_as_punct_char().unwrap() == '&' {
-            let reference = ReferenceToken::new(&mut tokens_reader)?;
-            return read_name_with_generics(&mut tokens_reader, Some(reference));
-        }
-
-        Err(tokens_reader.throw_error("Expected struct name or reference"))
+        Self::from_token_stream(value)
     }
 }
 
@@ -162,9 +176,13 @@ fn read_name_with_generics(
     tokens_reader: &mut TokensReader,
     reference: Option<ReferenceToken>,
 ) -> Result<TypeName, syn::Error> {
-    let next_token = tokens_reader.read_next_token()?;
+    let mut vec_of_ident = read_vec_of_ident(tokens_reader)?;
 
-    let name = next_token.unwrap_into_ident(None)?;
+    if vec_of_ident.len() == 0 {
+        return Err(tokens_reader.throw_error("Expected struct name"));
+    }
+
+    let name = vec_of_ident.remove(vec_of_ident.len() - 1);
 
     let next_token = tokens_reader.try_peek_next_token();
 
@@ -173,6 +191,7 @@ fn read_name_with_generics(
             reference,
             name,
             generics: None,
+            path: vec_of_ident,
         });
     }
 
@@ -183,6 +202,7 @@ fn read_name_with_generics(
             let generics = GenericsArrayToken::new(tokens_reader)?;
             return Ok(TypeName {
                 reference,
+                path: vec_of_ident,
                 name,
                 generics: Some(generics),
             });
@@ -191,9 +211,39 @@ fn read_name_with_generics(
 
     Ok(TypeName {
         reference,
+        path: vec_of_ident,
         name,
         generics: None,
     })
+}
+
+fn read_vec_of_ident(tokens_reader: &mut TokensReader) -> Result<Vec<syn::Ident>, syn::Error> {
+    let mut result = Vec::new();
+    while let Some(next_token) = tokens_reader.try_peek_next_token() {
+        match next_token {
+            PeekedToken::Punct(c) => {
+                if c == '<' {
+                    break;
+                } else {
+                    tokens_reader.try_get_next_token().unwrap();
+                }
+            }
+            PeekedToken::Ident => {
+                let ident = tokens_reader.try_get_next_token().unwrap();
+                result.push(ident.unwrap_as_ident()?);
+            }
+            PeekedToken::Group(_) => {
+                let next_token = tokens_reader.try_get_next_token().unwrap();
+                return next_token.throw_error("Expected ident or punct");
+            }
+            PeekedToken::Literal => {
+                let next_token = tokens_reader.try_get_next_token().unwrap();
+                return next_token.throw_error("Expected ident or punct");
+            }
+        }
+    }
+
+    Ok(result)
 }
 
 impl<'s> TryInto<TypeName> for &syn::DeriveInput {
@@ -210,29 +260,24 @@ mod tests {
     use std::str::FromStr;
 
     #[test]
-    fn test_struct_name_as_a_reference() {
-        let src = proc_macro2::TokenStream::from_str("&'s MyName").unwrap();
-
-        let struct_name: TypeName = src.try_into().unwrap();
-        assert_eq!("& 's MyName", struct_name.to_token_stream().to_string());
+    fn test_struct_name_with_name_space() {
+        let src = proc_macro2::TokenStream::from_str("my_postgres::sql_select::FromDbRow").unwrap();
+        let struct_name = TypeName::from_token_stream(src).unwrap();
+        assert_eq!(
+            "my_postgres :: sql_select :: FromDbRow",
+            struct_name.to_token_stream().to_string()
+        );
     }
 
     #[test]
-    fn test_struct_name() {
-        let src = proc_macro2::TokenStream::from_str("MyName").unwrap();
-
-        let struct_name: TypeName = src.try_into().unwrap();
-
-        assert_eq!("MyName", struct_name.to_token_stream().to_string());
-    }
-
-    #[test]
-    fn test_struct_name_with_generic() {
-        let src = proc_macro2::TokenStream::from_str("MyName<'s>").unwrap();
-
-        let struct_name: TypeName = src.try_into().unwrap();
-
-        assert_eq!("MyName < 's >", struct_name.to_token_stream().to_string());
+    fn test_struct_name_with_name_space_and_lifetime_as_generic() {
+        let src =
+            proc_macro2::TokenStream::from_str("my_postgres::sql_select::FromDbRow<'s>").unwrap();
+        let struct_name = TypeName::from_token_stream(src).unwrap();
+        assert_eq!(
+            "my_postgres :: sql_select :: FromDbRow < 's >",
+            struct_name.to_token_stream().to_string()
+        );
     }
 
     #[test]
@@ -274,5 +319,28 @@ mod tests {
             "HttpActionResult < 's >",
             struct_name.to_token_stream().to_string()
         );
+    }
+
+    #[test]
+    fn test_struct_name_as_a_reference() {
+        let src = proc_macro2::TokenStream::from_str("&'s MyName").unwrap();
+        let struct_name = TypeName::from_token_stream(src).unwrap();
+        assert_eq!("& 's MyName", struct_name.to_token_stream().to_string());
+    }
+
+    #[test]
+    fn test_struct_name() {
+        let src = proc_macro2::TokenStream::from_str("MyName").unwrap();
+        let struct_name = TypeName::from_token_stream(src).unwrap();
+        assert_eq!("MyName", struct_name.to_token_stream().to_string());
+    }
+
+    #[test]
+    fn test_struct_name_with_generic() {
+        let src = proc_macro2::TokenStream::from_str("MyName<'s>").unwrap();
+
+        let struct_name: TypeName = src.try_into().unwrap();
+
+        assert_eq!("MyName < 's >", struct_name.to_token_stream().to_string());
     }
 }
