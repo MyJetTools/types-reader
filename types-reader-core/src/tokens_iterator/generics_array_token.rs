@@ -98,9 +98,9 @@ impl GenericsArrayToken {
         false
     }
 
-    pub fn add_life_time_if_not_exists(&mut self, life_time: LifeTimeToken) {
+    pub fn add_life_time_if_not_exists(&mut self, life_time: &LifeTimeToken) {
         if !self.has_life_time(life_time.as_str()) {
-            self.content.push(GenericItem::LifeTime(life_time));
+            self.content.push(GenericItem::LifeTime(life_time.clone()));
         }
     }
 

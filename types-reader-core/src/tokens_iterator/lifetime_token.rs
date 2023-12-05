@@ -2,7 +2,7 @@ use std::str::FromStr;
 
 use crate::{TokensReader, TokensTreeExt};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct LifeTimeToken {
     name: syn::Ident,
     as_string: String,
