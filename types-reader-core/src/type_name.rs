@@ -140,6 +140,14 @@ fn read_name_with_generics(
     })
 }
 
+impl<'s> TryInto<TypeName> for &syn::DeriveInput {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<TypeName, Self::Error> {
+        TypeName::from_derive_input(self)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
