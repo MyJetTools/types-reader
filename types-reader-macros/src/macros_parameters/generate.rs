@@ -99,7 +99,7 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
 
     let name_ident = structure_schema.name.get_name_ident();
 
-    let from_tokens_object = structure_schema.render_try_into_implementation(
+    let from_tokens_object = structure_schema.name.render_try_into_implementation(
         true,
         quote::quote!(types_reader::TokensObject),
         quote::quote!(syn::Error),
