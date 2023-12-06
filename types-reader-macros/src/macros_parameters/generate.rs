@@ -5,9 +5,13 @@ use types_reader_core::{PropertyType, StructureSchema};
 
 pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
     let ast: syn::DeriveInput = syn::parse(input).unwrap();
-
     let structure_schema = StructureSchema::new(&ast)?;
+    generate_content(&structure_schema).map(Into::into)
+}
 
+pub fn generate_content(
+    structure_schema: &StructureSchema,
+) -> Result<proc_macro2::TokenStream, syn::Error> {
     let mut reading_props = Vec::new();
 
     for property in structure_schema.get_all() {
@@ -113,5 +117,5 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
         },
     );
 
-    Ok(from_tokens_object.into())
+    Ok(from_tokens_object)
 }
