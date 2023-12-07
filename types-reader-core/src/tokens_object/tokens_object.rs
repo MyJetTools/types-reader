@@ -281,6 +281,13 @@ impl TokensObject {
         }
     }
 
+    pub fn unwrap_as_object(&self) -> &HashMap<String, TokensObject> {
+        match self {
+            Self::Object { items, .. } => items,
+            _ => panic!("Can not unwrap as object"),
+        }
+    }
+
     fn read_value(token_value: NextToken) -> Result<Self, syn::Error> {
         let next_token = match token_value.try_unwrap_as_value() {
             Ok(token_value) => return Ok(Self::Value(token_value.try_into()?)),

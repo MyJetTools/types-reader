@@ -133,6 +133,12 @@ pub fn generate_content(
                 let mut fields = std::collections::HashMap::new();
                 #( #add_fields )*
 
+                let as_object = tokens_object.unwrap_as_object();
+                for (key, value) in as_object {
+                    if !fields.contains_key(key.as_str()) {
+                        value.throw_error("Unknown field");
+                    }
+                }
                 Ok(())
             }
 
