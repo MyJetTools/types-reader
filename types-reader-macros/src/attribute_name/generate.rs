@@ -15,13 +15,13 @@ pub fn generate(
         .as_string()?
         .as_str();
 
-    let name_ident = structure_schema.name.get_name_ident();
+    let ident_with_generics = structure_schema.name.to_token_stream();
 
     let impl_generics = structure_schema.name.get_generic_token_stream_after_impl();
 
     Ok(quote::quote! {
         #ast
-        impl #impl_generics types_reader::MacrosAttribute for #name_ident {
+        impl #impl_generics types_reader::MacrosAttribute for #ident_with_generics {
             const NAME:&'static str = #attribute_name;
         }
     }
