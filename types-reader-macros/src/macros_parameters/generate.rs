@@ -136,7 +136,7 @@ pub fn generate_content(
                 let as_object = tokens_object.unwrap_as_object();
                 for (key, value) in as_object {
                     if !fields.contains_key(key.as_str()) {
-                        value.throw_error("Unknown field");
+                        return Err(value.throw_error("Unknown field"));
                     }
                 }
                 Ok(())
