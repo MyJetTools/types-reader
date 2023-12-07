@@ -17,9 +17,11 @@ pub fn generate(
 
     let name_ident = structure_schema.name.get_name_ident();
 
+    let impl_generics = structure_schema.name.get_generic_token_stream_after_impl();
+
     Ok(quote::quote! {
         #ast
-        impl types_reader::MacrosAttribute for #name_ident {
+        impl #impl_generics types_reader::MacrosAttribute for #name_ident {
             const NAME:&'static str = #attribute_name;
         }
     }
