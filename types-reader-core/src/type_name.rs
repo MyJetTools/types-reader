@@ -174,6 +174,45 @@ impl TypeName {
             }
         }
     }
+
+    pub fn render_try_from_implementation(
+        &self,
+        from_reference: bool,
+        from_struct: proc_macro2::TokenStream,
+        error_type: proc_macro2::TokenStream,
+        content: impl Fn() -> proc_macro2::TokenStream,
+    ) -> proc_macro2::TokenStream {
+        let mut generic_after_impl = self.get_generic_token_stream_after_impl();
+        let reference = if from_reference {
+            if let Some(life_time) = self.get_first_life_time() {
+                let life_time_token_stream = life_time.to_token_stream();
+                quote::quote!(& #life_time_token_stream)
+            } else {
+                generic_after_impl = quote::quote!(<'s>);
+                quote::quote!(&'s)
+            }
+        } else {
+            quote::quote!()
+        };
+
+        let name_ident = self.to_token_stream();
+
+        let content = content();
+
+        let content = quote::quote! {
+            type Error = #error_type;
+
+            fn try_from(value: &'s types_reader::TokensObject) -> Result<Self, Self::Error> {
+                #content
+            }
+        };
+
+        quote::quote! {
+            impl #generic_after_impl TryFrom<#reference #from_struct> for #name_ident  {
+                #content
+            }
+        }
+    }
 }
 
 fn read_name_with_generics(

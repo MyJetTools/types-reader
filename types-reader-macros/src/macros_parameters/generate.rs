@@ -36,7 +36,7 @@ pub fn generate_content(
         if property.ty.is_vec() {
             reading_props.push(quote::quote!(#prop_ident: {
                 let mut result = Vec::new();
-                let items = self.#fn_name(#prop_name)?.get_vec()?;
+                let items = value.#fn_name(#prop_name)?.get_vec()?;
 
                 for item in items {
                     result.push(item.try_into()?);
@@ -47,7 +47,7 @@ pub fn generate_content(
         } else if let PropertyType::OptionOf(sub_ty) = &property.ty {
             if sub_ty.is_vec() {
                 reading_props.push(
-                    quote::quote!(#prop_ident: if let Some(value) = self.#opt_fn_name(#prop_name){
+                    quote::quote!(#prop_ident: if let Some(value) = value.#opt_fn_name(#prop_name){
                     let items = value.get_vec()?;
                     let mut result = Vec::new();
                     for item in items {
@@ -62,7 +62,7 @@ pub fn generate_content(
             } else {
                 if ident_is_allowed {
                     reading_props.push(
-                        quote::quote!(#prop_ident: if let Some(value) = self.#opt_fn_name(#prop_name){
+                        quote::quote!(#prop_ident: if let Some(value) = value.#opt_fn_name(#prop_name){
                         Some(value.get_value()?.any_value_as_str().try_into()?)
                     }else{
                         None
@@ -70,7 +70,7 @@ pub fn generate_content(
                     );
                 } else {
                     reading_props.push(
-                        quote::quote!(#prop_ident: if let Some(value) = self.#opt_fn_name(#prop_name){
+                        quote::quote!(#prop_ident: if let Some(value) = value.#opt_fn_name(#prop_name){
                         Some(value.try_into()?)
                     }else{
                         None
@@ -81,21 +81,21 @@ pub fn generate_content(
         } else if let PropertyType::RefTo { ty, lifetime: _ } = &property.ty {
             if ty.as_str().as_str() == "TokensObject" {
                 reading_props.push(quote::quote! {
-                    #prop_ident: self.#fn_name(#prop_name)?,
+                    #prop_ident: value.#fn_name(#prop_name)?,
                 });
             } else {
                 reading_props.push(quote::quote! {
-                    #prop_ident: self.#fn_name(#prop_name)?.try_into()?,
+                    #prop_ident: value.#fn_name(#prop_name)?.try_into()?,
                 });
             }
         } else {
             if ident_is_allowed {
                 reading_props.push(quote::quote! {
-                    #prop_ident: self.#fn_name(#prop_name)?.get_value()?.any_value_as_str().try_into()?,
+                    #prop_ident: value.#fn_name(#prop_name)?.get_value()?.any_value_as_str().try_into()?,
                 });
             } else {
                 reading_props.push(quote::quote! {
-                    #prop_ident: self.#fn_name(#prop_name)?.try_into()?,
+                    #prop_ident: value.#fn_name(#prop_name)?.try_into()?,
                 });
             }
         }
@@ -103,6 +103,7 @@ pub fn generate_content(
 
     let name_ident = structure_schema.name.get_name_ident();
 
+    /*
     let from_tokens_object = structure_schema.name.render_try_into_implementation(
         true,
         quote::quote!(types_reader::TokensObject),
@@ -111,6 +112,22 @@ pub fn generate_content(
             quote::quote! {
                 #name_ident::check_fields(self)?;
                     let result = #name_ident{
+                        #( #reading_props )*
+                    };
+                    Ok(result)
+            }
+        },
+    );
+     */
+
+    let from_tokens_object = structure_schema.name.render_try_from_implementation(
+        true,
+        quote::quote!(types_reader::TokensObject),
+        quote::quote!(syn::Error),
+        || {
+            quote::quote! {
+                #name_ident::check_fields(value)?;
+                    let result = Self{
                         #( #reading_props )*
                     };
                     Ok(result)
