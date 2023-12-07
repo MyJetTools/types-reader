@@ -80,7 +80,7 @@ pub fn generate_content(
                 if ident_is_allowed {
                     reading_props.push(
                         quote::quote!(#prop_ident: if let Some(value) = value.#opt_fn_name(#prop_name){
-                        Some(value.any_value_as_str().try_into()?)
+                        Some(value.get_value()?.any_value_as_str().try_into()?)
                     }else{
                         None
                     }, ),
