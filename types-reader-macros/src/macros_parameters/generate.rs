@@ -29,7 +29,7 @@ pub fn generate_content(
                     .throw_error("'has_attribute' can be applied only to bool property");
             } else {
                 reading_props.push(quote::quote! {
-                    #prop_ident: value.has_param(#prop_name)
+                    #prop_ident: value.has_param(#prop_name),
                 });
             }
 
