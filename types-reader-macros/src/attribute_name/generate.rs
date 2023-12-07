@@ -20,7 +20,7 @@ pub fn generate(
     Ok(quote::quote! {
         #ast
         impl types_reader::MacrosAttribute for #name_ident {
-            const NAME: =#attribute_name;
+            const NAME:&'static str = #attribute_name;
         }
     }
     .into())
