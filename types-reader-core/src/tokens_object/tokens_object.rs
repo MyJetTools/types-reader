@@ -142,16 +142,16 @@ impl TokensObject {
             }
             Self::Object {
                 items,
-                token_stream,
+                token_stream: _,
             } => {
-                for (param_name, ..) in items {
+                for (param_name, value) in items {
                     if !used_parameters.iter().any(|itm| *itm == param_name) {
-                        return Err(syn::Error::new_spanned(
-                            token_stream,
+                        return Err(value.throw_error_at_param_token(
                             format!(
-                                "Unknown parameter {}. Parameters are supported: {:?}",
-                                param_name, used_parameters
-                            ),
+                                "Unknown parameter. Parameters are supported: {:?}",
+                                used_parameters
+                            )
+                            .as_str(),
                         ));
                     }
                 }
