@@ -1,4 +1,7 @@
-use crate::{attributes::Attributes, PropertyType};
+use crate::{
+    attributes::{Attributes, MacrosAttribute},
+    PropertyType, TokensObject,
+};
 
 pub struct StructProperty<'s> {
     pub name: String,
@@ -47,5 +50,33 @@ impl<'s> StructProperty<'s> {
     pub fn throw_error<TResult>(&self, message: &str) -> Result<TResult, syn::Error> {
         let err = syn::Error::new_spanned(self.field, message);
         Err(err)
+    }
+
+    pub fn try_get_attribute<
+        TResult: MacrosAttribute + TryFrom<&'s TokensObject, Error = syn::Error>,
+    >(
+        &'s self,
+    ) -> Result<Option<TResult>, syn::Error> {
+        let result = self.attrs.try_get_attr(TResult::NAME);
+
+        if result.is_none() {
+            return Ok(None);
+        }
+
+        let result = result.unwrap();
+
+        let result = TResult::try_from(result)?;
+        Ok(Some(result))
+    }
+
+    pub fn get_attribute<
+        TResult: MacrosAttribute + TryFrom<&'s TokensObject, Error = syn::Error>,
+    >(
+        &'s self,
+    ) -> Result<TResult, syn::Error> {
+        let result = self.attrs.get_attr(TResult::NAME)?;
+
+        let result = TResult::try_from(result)?;
+        Ok(result)
     }
 }

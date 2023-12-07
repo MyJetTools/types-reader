@@ -5,6 +5,10 @@ use quote::ToTokens;
 
 use crate::{ObjectValue, TokensObject};
 
+pub trait MacrosAttribute {
+    const NAME: &'static str;
+}
+
 pub struct Attributes<'s> {
     attrs: HashMap<String, Vec<TokensObject>>,
     root: &'s syn::DeriveInput,

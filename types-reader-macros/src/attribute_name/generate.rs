@@ -19,10 +19,8 @@ pub fn generate(
 
     Ok(quote::quote! {
         #ast
-        impl #name_ident {
-            pub fn get_attr_name()->&'static str{
-                #attribute_name
-            }
+        impl types_reader::MacrosAttribute for #name_ident {
+            const NAME: =#attribute_name;
         }
     }
     .into())

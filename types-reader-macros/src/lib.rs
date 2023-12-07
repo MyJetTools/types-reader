@@ -1,4 +1,4 @@
-mod attribute_parameters;
+mod attribute_name;
 mod macros_enum;
 mod macros_parameters;
 use proc_macro::TokenStream;
@@ -24,7 +24,7 @@ pub fn attribute_name(
     attr: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {
-    match crate::attribute_parameters::generate(input, attr.into()) {
+    match crate::attribute_name::generate(input, attr.into()) {
         Ok(result) => result,
         Err(err) => err.to_compile_error().into(),
     }
