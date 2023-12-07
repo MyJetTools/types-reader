@@ -15,4 +15,5 @@ pub use tokens_iterator::*;
 mod structure_schema;
 pub use structure_schema::*;
 mod type_name;
+pub use attributes::MacrosAttribute;
 pub use type_name::*;
