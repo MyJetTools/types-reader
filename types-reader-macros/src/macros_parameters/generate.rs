@@ -109,6 +109,7 @@ pub fn generate_content(
         quote::quote!(syn::Error),
         || {
             quote::quote! {
+                #name_ident::check_fields(self)?;
                     let result = #name_ident{
                         #( #reading_props )*
                     };
@@ -117,5 +118,32 @@ pub fn generate_content(
         },
     );
 
-    Ok(from_tokens_object)
+    let check_fields = structure_schema.name.render_implement(|| {
+        let mut add_fields = Vec::new();
+
+        for field in structure_schema.get_all() {
+            let name = field.name.as_str();
+            add_fields.push(quote::quote! { fields.insert(#name, ());});
+        }
+
+        quote::quote! {
+
+            pub fn check_fields(tokens_object: &types_reader::TokensObject)->Result<(), syn::Error>{
+
+                let mut fields = std::collections::HashMap::new();
+                #( #add_fields )*
+
+                Ok(())
+            }
+
+        }
+    });
+
+    let result = quote::quote! {
+        #from_tokens_object
+
+        #check_fields
+    };
+
+    Ok(result)
 }
