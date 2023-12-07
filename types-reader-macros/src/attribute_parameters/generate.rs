@@ -20,6 +20,7 @@ pub fn generate(
     let name_ident = structure_schema.name.get_name_ident();
 
     Ok(quote::quote! {
+        #ast
         impl #name_ident {
             pub fn get_attr_name()->&'static str{
                 #attribute_name
