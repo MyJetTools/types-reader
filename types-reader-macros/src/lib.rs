@@ -20,7 +20,7 @@ pub fn macros_enum(input: TokenStream) -> TokenStream {
 }
 
 #[proc_macro_attribute]
-pub fn attribute_parameters(
+pub fn attribute_name(
     attr: proc_macro::TokenStream,
     input: proc_macro::TokenStream,
 ) -> proc_macro::TokenStream {

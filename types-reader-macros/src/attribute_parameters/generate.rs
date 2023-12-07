@@ -15,8 +15,6 @@ pub fn generate(
         .as_string()?
         .as_str();
 
-    let parameters = crate::macros_parameters::generate_content(&structure_schema)?;
-
     let name_ident = structure_schema.name.get_name_ident();
 
     Ok(quote::quote! {
@@ -26,8 +24,6 @@ pub fn generate(
                 #attribute_name
             }
         }
-        #parameters
-
     }
     .into())
 }
