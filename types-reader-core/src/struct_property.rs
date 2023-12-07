@@ -79,4 +79,44 @@ impl<'s> StructProperty<'s> {
         let result = TResult::try_from(result)?;
         Ok(result)
     }
+
+    pub fn get_attributes<
+        TResult: MacrosAttribute + TryFrom<&'s TokensObject, Error = syn::Error>,
+    >(
+        &'s self,
+    ) -> Result<Vec<TResult>, syn::Error> {
+        let attrs = self.attrs.get_attrs(TResult::NAME)?;
+
+        let mut result = Vec::with_capacity(attrs.len());
+
+        for attr in attrs {
+            let itm = TResult::try_from(attr)?;
+            result.push(itm);
+        }
+
+        Ok(result)
+    }
+
+    pub fn try_get_attributes<
+        TResult: MacrosAttribute + TryFrom<&'s TokensObject, Error = syn::Error>,
+    >(
+        &'s self,
+    ) -> Result<Option<Vec<TResult>>, syn::Error> {
+        let attrs = self.attrs.try_get_attrs(TResult::NAME);
+
+        if attrs.is_none() {
+            return Ok(None);
+        }
+
+        let attrs = attrs.unwrap();
+
+        let mut result = Vec::with_capacity(attrs.len());
+
+        for attr in attrs {
+            let itm = TResult::try_from(attr)?;
+            result.push(itm);
+        }
+
+        Ok(Some(result))
+    }
 }
