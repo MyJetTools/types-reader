@@ -19,7 +19,9 @@ pub fn generate_content(
 
         let prop_name = prop_ident.to_string();
 
-        let ident_is_allowed = super::utils::is_ident_allowed(property);
+        //todo!("Temporary reading ident and is_any_value_as_string is the same");
+        let ident_is_allowed = super::utils::is_ident_allowed(property)
+            || super::utils::is_any_value_as_string(property);
 
         let has_attribute = property.attrs.has_attr("has_attribute");
 
@@ -78,7 +80,7 @@ pub fn generate_content(
                 if ident_is_allowed {
                     reading_props.push(
                         quote::quote!(#prop_ident: if let Some(value) = value.#opt_fn_name(#prop_name){
-                        Some(value.get_value()?.any_value_as_str().try_into()?)
+                        Some(value.any_value_as_str().try_into()?)
                     }else{
                         None
                     }, ),

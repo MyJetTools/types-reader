@@ -3,7 +3,10 @@ mod macros_enum;
 mod macros_parameters;
 use proc_macro::TokenStream;
 
-#[proc_macro_derive(MacrosParameters, attributes(allow_ident, default, has_attribute))]
+#[proc_macro_derive(
+    MacrosParameters,
+    attributes(any_value_as_string, allow_ident, default, has_attribute)
+)]
 pub fn macros_parameters(input: TokenStream) -> TokenStream {
     match crate::macros_parameters::generate(input) {
         Ok(result) => result,
