@@ -94,6 +94,11 @@ impl ObjectValue {
         }
     }
 
+    // Technical method to keep the chain of reading values by macros
+    pub fn get_value(&self) -> Result<&Self, syn::Error> {
+        Ok(self)
+    }
+
     pub fn parse<TResult: FromStr>(
         &self,
         err_msg: Option<impl Into<StrOrString<'static>>>,
