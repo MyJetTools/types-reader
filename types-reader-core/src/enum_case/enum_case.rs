@@ -1,4 +1,4 @@
-use crate::{attributes::Attributes, EnumModel};
+use crate::{attributes::Attributes, EnumModel, MacrosAttribute, TokensObject};
 
 pub struct EnumCase<'s> {
     pub attrs: Attributes<'s>,
@@ -45,5 +45,73 @@ impl<'s> EnumCase<'s> {
 
     pub fn get_name_ident(&self) -> &syn::Ident {
         &self.name_ident
+    }
+
+    pub fn try_get_attribute<
+        TResult: MacrosAttribute + TryFrom<&'s TokensObject, Error = syn::Error>,
+    >(
+        &'s self,
+    ) -> Result<Option<TResult>, syn::Error> {
+        let result = self.attrs.try_get_attr(TResult::NAME);
+
+        if result.is_none() {
+            return Ok(None);
+        }
+
+        let result = result.unwrap();
+
+        let result = TResult::try_from(result)?;
+        Ok(Some(result))
+    }
+
+    pub fn get_attribute<
+        TResult: MacrosAttribute + TryFrom<&'s TokensObject, Error = syn::Error>,
+    >(
+        &'s self,
+    ) -> Result<TResult, syn::Error> {
+        let result = self.attrs.get_attr(TResult::NAME)?;
+
+        let result = TResult::try_from(result)?;
+        Ok(result)
+    }
+
+    pub fn get_attributes<
+        TResult: MacrosAttribute + TryFrom<&'s TokensObject, Error = syn::Error>,
+    >(
+        &'s self,
+    ) -> Result<Vec<TResult>, syn::Error> {
+        let attrs = self.attrs.get_attrs(TResult::NAME)?;
+
+        let mut result = Vec::with_capacity(attrs.len());
+
+        for attr in attrs {
+            let itm = TResult::try_from(attr)?;
+            result.push(itm);
+        }
+
+        Ok(result)
+    }
+
+    pub fn try_get_attributes<
+        TResult: MacrosAttribute + TryFrom<&'s TokensObject, Error = syn::Error>,
+    >(
+        &'s self,
+    ) -> Result<Option<Vec<TResult>>, syn::Error> {
+        let attrs = self.attrs.try_get_attrs(TResult::NAME);
+
+        if attrs.is_none() {
+            return Ok(None);
+        }
+
+        let attrs = attrs.unwrap();
+
+        let mut result = Vec::with_capacity(attrs.len());
+
+        for attr in attrs {
+            let itm = TResult::try_from(attr)?;
+            result.push(itm);
+        }
+
+        Ok(Some(result))
     }
 }
