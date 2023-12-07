@@ -21,6 +21,21 @@ pub fn generate_content(
 
         let ident_is_allowed = super::utils::is_ident_allowed(property);
 
+        let has_attribute = property.attrs.has_attr("has_attribute");
+
+        if has_attribute {
+            if !property.ty.is_boolean() {
+                return property
+                    .throw_error("'has_attribute' can be applied only to bool property");
+            } else {
+                reading_props.push(quote::quote! {
+                    #prop_ident: value.has_param(#prop_name)
+                });
+            }
+
+            continue;
+        }
+
         let (fn_name, opt_fn_name) = if super::utils::is_default(property) {
             (
                 "get_from_single_or_named",

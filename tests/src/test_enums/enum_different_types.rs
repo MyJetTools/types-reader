@@ -11,6 +11,8 @@ pub enum ShouldBeAuthorized {
 #[derive(MacrosParameters)]
 pub struct MyStruct {
     pub field1: ShouldBeAuthorized,
+    #[has_attribute]
+    pub as_str: bool,
 }
 
 #[cfg(test)]
