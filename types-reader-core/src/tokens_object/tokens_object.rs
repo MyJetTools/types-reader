@@ -336,6 +336,10 @@ impl TokensObject {
 
         Ok((result, token_reader.into_token_stream()))
     }
+
+    pub fn as_ref(&self) -> &Self {
+        self
+    }
 }
 
 impl TryInto<TokensObject> for proc_macro2::TokenStream {
@@ -343,6 +347,12 @@ impl TryInto<TokensObject> for proc_macro2::TokenStream {
 
     fn try_into(self) -> Result<TokensObject, Self::Error> {
         TokensObject::new(self.into())
+    }
+}
+
+impl AsRef<TokensObject> for TokensObject {
+    fn as_ref(&self) -> &Self {
+        self
     }
 }
 

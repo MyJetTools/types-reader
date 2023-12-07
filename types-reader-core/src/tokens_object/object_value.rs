@@ -125,6 +125,16 @@ impl ObjectValue {
     pub fn any_value_as_str<'s>(&'s self) -> &'s dyn AnyValueAsStr<'s> {
         self
     }
+
+    pub fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
+impl AsRef<ObjectValue> for ObjectValue {
+    fn as_ref(&self) -> &Self {
+        self
+    }
 }
 
 impl TryInto<ObjectValue> for syn::Ident {
