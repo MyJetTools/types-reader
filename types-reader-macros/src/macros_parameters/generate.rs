@@ -123,23 +123,13 @@ pub fn generate_content(
 
         for field in structure_schema.get_all() {
             let name = field.name.as_str();
-            add_fields.push(quote::quote! { fields.insert(#name, ());});
+            add_fields.push(quote::quote! { #name, });
         }
 
         quote::quote! {
 
             pub fn check_fields(tokens_object: &types_reader::TokensObject)->Result<(), syn::Error>{
-
-                let mut fields = std::collections::HashMap::new();
-                #( #add_fields )*
-
-                let as_object = tokens_object.unwrap_as_object();
-                for (key, value) in as_object {
-                    if !fields.contains_key(key.as_str()) {
-                        return Err(value.throw_error("Unknown field"));
-                    }
-                }
-                Ok(())
+                tokens_object.check_for_unknown_params(&[#( #add_fields )*])
             }
 
         }

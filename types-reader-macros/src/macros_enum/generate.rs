@@ -106,12 +106,6 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
            Err(err)
     };
 
-    println!(
-        "{} as_str_cases: {}",
-        name_ident.to_string(),
-        as_str_cases.len()
-    );
-
     let as_str_impl = if has_vec_case || as_str_cases.len() == 0 {
         quote::quote!()
     } else {

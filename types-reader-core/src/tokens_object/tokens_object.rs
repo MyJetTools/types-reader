@@ -6,7 +6,11 @@ use std::collections::HashMap;
 #[derive(Debug)]
 pub enum TokensObject {
     None(TokenStream),
-    Value(ObjectValue),
+    ValueOnly(ObjectValue),
+    Value {
+        param_name: syn::Ident,
+        value: ObjectValue,
+    },
     Object {
         token_stream: TokenStream,
         items: HashMap<String, TokensObject>,
@@ -30,30 +34,30 @@ impl TokensObject {
         let next_token = next_token.unwrap();
 
         let mut ident_token = match next_token.try_unwrap_as_value() {
-            Ok(token_value) => return Ok(Self::Value(token_value.try_into()?)),
+            Ok(token_value) => return Ok(Self::ValueOnly(token_value.try_into()?)),
             Err(next_token) => next_token,
         };
 
         let mut items = HashMap::new();
 
-        while let Ok(ident) = ident_token.unwrap_into_ident(None) {
+        while let Ok(param_name) = ident_token.unwrap_into_ident(None) {
             let token_equal = token_reader.try_read_next_token()?;
 
             if token_equal.is_none() {
-                let id = ident.to_string();
-                items.insert(id, Self::None(quote::quote!(#ident)));
+                let id = param_name.to_string();
+                items.insert(id, Self::None(quote::quote!(#param_name)));
                 break;
             }
 
             let token_equal = token_equal.unwrap();
 
             if token_equal.if_spacing(Some(&SPACE_SYMBOLS)) {
-                let id = ident.to_string();
-                items.insert(id, Self::None(quote::quote!(#ident)));
+                let id = param_name.to_string();
+                items.insert(id, Self::None(quote::quote!(#param_name)));
             } else if token_equal.if_spacing(Some(&[':', '='])) {
                 let token_value = token_reader.read_next_token()?;
-                let id = ident.to_string();
-                items.insert(id, Self::read_value(token_value)?);
+                let id = param_name.to_string();
+                items.insert(id, Self::read_value(param_name, token_value)?);
             }
 
             let next_token = token_reader.try_read_next_token()?;
@@ -95,7 +99,13 @@ impl TokensObject {
                 "Attribute has no params",
             )),
 
-            Self::Value(value) => {
+            Self::ValueOnly(value) => {
+                return Err(
+                    value.throw_error("Can not get ident. Attribute has parameter as value")
+                );
+            }
+
+            Self::Value { value, .. } => {
                 return Err(
                     value.throw_error("Can not get ident. Attribute has parameter as value")
                 );
@@ -121,6 +131,9 @@ impl TokensObject {
     ) -> Result<(), syn::Error> {
         match self {
             Self::None(_) => return Ok(()),
+            Self::ValueOnly(_) => {
+                return Ok(());
+            }
             Self::Value { .. } => {
                 return Ok(());
             }
@@ -131,7 +144,7 @@ impl TokensObject {
                 items,
                 token_stream,
             } => {
-                for (param_name, _) in items {
+                for (param_name, ..) in items {
                     if !used_parameters.iter().any(|itm| *itm == param_name) {
                         return Err(syn::Error::new_spanned(
                             token_stream,
@@ -148,10 +161,25 @@ impl TokensObject {
         Ok(())
     }
 
-    pub fn throw_error(&self, message: &str) -> syn::Error {
+    pub fn throw_error_at_value_token(&self, message: &str) -> syn::Error {
         match self {
             TokensObject::None(token) => syn::Error::new_spanned(token, message),
-            TokensObject::Value(value) => value.throw_error(message),
+            TokensObject::ValueOnly(value) => value.throw_error(message),
+            TokensObject::Value { value, .. } => value.throw_error(message),
+            TokensObject::Object { token_stream, .. } => {
+                syn::Error::new_spanned(token_stream, message)
+            }
+            TokensObject::Vec { token_stream, .. } => {
+                syn::Error::new_spanned(token_stream, message)
+            }
+        }
+    }
+
+    pub fn throw_error_at_param_token(&self, message: &str) -> syn::Error {
+        match self {
+            TokensObject::None(token) => syn::Error::new_spanned(token, message),
+            TokensObject::ValueOnly(value) => value.throw_error(message),
+            TokensObject::Value { param_name, .. } => syn::Error::new_spanned(param_name, message),
             TokensObject::Object { token_stream, .. } => {
                 syn::Error::new_spanned(token_stream, message)
             }
@@ -164,7 +192,7 @@ impl TokensObject {
     pub fn get_vec(&self) -> Result<&Vec<Self>, syn::Error> {
         match self.try_get_vec() {
             Some(value) => Ok(value),
-            None => Err(self.throw_error("Value should be an object list")),
+            None => Err(self.throw_error_at_param_token("Value should be an object list")),
         }
     }
 
@@ -184,7 +212,8 @@ impl TokensObject {
 
     pub fn try_get_single_param(&self) -> Option<&ObjectValue> {
         match self {
-            Self::Value(value) => Some(value),
+            Self::ValueOnly(value) => Some(value),
+            Self::Value { value, .. } => Some(value),
             _ => None,
         }
     }
@@ -198,7 +227,7 @@ impl TokensObject {
             _ => {}
         }
 
-        Err(self.throw_error(format!("Field '{}' is required", param_name).as_str()))
+        Err(self.throw_error_at_param_token(format!("Field '{}' is required", param_name).as_str()))
     }
 
     pub fn try_get_named_param(&self, param_name: &str) -> Option<&TokensObject> {
@@ -225,19 +254,25 @@ impl TokensObject {
 
     pub fn get_value(&self) -> Result<&ObjectValue, syn::Error> {
         match self {
-            TokensObject::Value(value) => Ok(value),
-            TokensObject::None(_) => Err(self.throw_error("Can not get empty value")),
+            TokensObject::ValueOnly(value) => Ok(value),
+            TokensObject::Value { value, .. } => Ok(value),
+            TokensObject::None(_) => {
+                Err(self.throw_error_at_param_token("Can not get empty value"))
+            }
 
             TokensObject::Object { .. } => {
-                Err(self.throw_error("Can not get value. Value is object"))
+                Err(self.throw_error_at_param_token("Can not get value. Value is object"))
             }
-            TokensObject::Vec { .. } => Err(self.throw_error("Can not get value. Value is array")),
+            TokensObject::Vec { .. } => {
+                Err(self.throw_error_at_param_token("Can not get value. Value is array"))
+            }
         }
     }
 
     pub fn try_get_value(&self) -> Option<&ObjectValue> {
         match self {
-            TokensObject::Value(value) => Some(value),
+            TokensObject::Value { value, .. } => Some(value),
+            TokensObject::ValueOnly(value) => Some(value),
             _ => None,
         }
     }
@@ -254,7 +289,7 @@ impl TokensObject {
             return result.get_value();
         }
 
-        Err(self.throw_error(format!("Field '{}' is required", param_name).as_str()))
+        Err(self.throw_error_at_param_token(format!("Field '{}' is required", param_name).as_str()))
     }
 
     pub fn try_get_value_from_single_or_named(&self, param_name: &str) -> Option<&ObjectValue> {
@@ -269,6 +304,7 @@ impl TokensObject {
         match self {
             Self::None(_) => 0,
             Self::Value { .. } => 1,
+            Self::ValueOnly(_) => 1,
             Self::Vec { items, .. } => items.len(),
             Self::Object { items, .. } => items.len(),
         }
@@ -288,21 +324,31 @@ impl TokensObject {
         }
     }
 
-    fn read_value(token_value: NextToken) -> Result<Self, syn::Error> {
+    fn read_value(param_name: syn::Ident, token_value: NextToken) -> Result<Self, syn::Error> {
         let next_token = match token_value.try_unwrap_as_value() {
-            Ok(token_value) => return Ok(Self::Value(token_value.try_into()?)),
+            Ok(token_value) => {
+                return Ok(Self::Value {
+                    param_name,
+                    value: token_value.try_into()?,
+                })
+            }
             Err(next_token) => next_token,
         };
 
         let next_token = match next_token.try_unwrap_into_ident() {
-            Ok(ident) => return Ok(Self::Value(ident.try_into()?)),
+            Ok(ident) => {
+                return Ok(Self::Value {
+                    param_name,
+                    value: ident.try_into()?,
+                })
+            }
             Err(next_token) => next_token,
         };
 
         let next_token = match next_token.try_unwrap_into_group(None) {
             Ok((group_tokens, delimiter)) => match delimiter {
                 proc_macro2::Delimiter::Bracket => {
-                    let (items, token_stream) = Self::parse_as_array(group_tokens)?;
+                    let (items, token_stream) = Self::parse_as_array(param_name, group_tokens)?;
                     return Ok(Self::Vec {
                         token_stream,
                         items,
@@ -323,6 +369,7 @@ impl TokensObject {
     }
 
     pub fn parse_as_array(
+        param_name: syn::Ident,
         mut token_reader: TokensReader,
     ) -> Result<(Vec<TokensObject>, TokenStream), syn::Error> {
         let mut result: Vec<TokensObject> = Vec::new();
@@ -337,7 +384,7 @@ impl TokensObject {
                 token = next_token.unwrap();
             }
 
-            let param_value = Self::read_value(token)?;
+            let param_value = Self::read_value(param_name.clone(), token)?;
             result.push(param_value);
         }
 
