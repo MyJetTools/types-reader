@@ -16,6 +16,8 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
 
     let mut has_default_case = None;
 
+    let mut as_str_cases = Vec::with_capacity(src_fields.len());
+
     for src in &src_fields {
         if super::utils::has_default_attribute(&src) {
             has_default_case = Some(src.get_name_ident());
@@ -43,9 +45,13 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
             }
         });
         supported_cases.push('\'');
+
+        as_str_cases.push(quote::quote!(#name_ident::#case_ident => #case_as_str,));
     }
 
     let mut generated_model_cases = Vec::with_capacity(enum_cases_with_model.len());
+
+    let mut has_vec_case = false;
 
     for enum_case in enum_cases_with_model {
         let case_ident = enum_case.get_name_ident();
@@ -56,6 +62,7 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
         let ident_as_string = ident.to_string();
 
         if ident_as_string == "Vec" {
+            has_vec_case = true;
             generated_model_cases.push(quote::quote! {
                 if let Some(src) = self.try_get_vec(){
                     let mut result = Vec::with_capacity(src.len());
@@ -99,6 +106,24 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
            Err(err)
     };
 
+    println!(
+        "{} as_str_cases: {}",
+        name_ident.to_string(),
+        as_str_cases.len()
+    );
+
+    let as_str_impl = if has_vec_case || as_str_cases.len() == 0 {
+        quote::quote!()
+    } else {
+        quote::quote! {
+            pub fn as_str(&self) -> &str {
+                match self {
+                    #( #as_str_cases )*
+                }
+            }
+        }
+    };
+
     let result = quote::quote! {
 
 
@@ -107,6 +132,8 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
                 #( #try_from_str_cases )*
                 None
             }
+
+            #as_str_impl
         }
 
 
