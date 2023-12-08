@@ -122,7 +122,7 @@ fn generate_reading_op(
             OPTIONAL_OBJECT_VALUE_TYPE_NAME => {
                 if reading_single_param {
                     return quote::quote! {
-                         value.try_get_value_from_single_or_named(#prop_name),
+                         value.try_get_value_from_single_or_named(#prop_name)?,
                     };
                 } else {
                     return quote::quote! {
