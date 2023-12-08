@@ -14,6 +14,7 @@ pub struct MyStruct {
     #[has_attribute]
     pub as_str: bool,
     pub field2: Option<ShouldBeAuthorized>,
+    pub deprecated: Option<bool>,
 }
 
 #[cfg(test)]

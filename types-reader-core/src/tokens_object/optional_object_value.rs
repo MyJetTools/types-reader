@@ -423,3 +423,23 @@ impl<'s> TryInto<f64> for &'s OptionalObjectValue {
         Ok(value)
     }
 }
+
+impl<'s> TryInto<bool> for &'s OptionalObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<bool, Self::Error> {
+        let value = self.as_bool()?.get_value();
+        Ok(value)
+    }
+}
+
+impl<'s> TryInto<Option<bool>> for &'s OptionalObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<Option<bool>, Self::Error> {
+        match self.try_as_bool()? {
+            Some(value) => Ok(Some(value.get_value())),
+            None => Ok(None),
+        }
+    }
+}
