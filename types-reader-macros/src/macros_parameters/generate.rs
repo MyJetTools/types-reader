@@ -118,7 +118,11 @@ fn generate_reading_op(
         return quote::quote! {
 
             if let Some(value) = value.try_get_value_from_single_or_named(#prop_name)?{
-                Some(value.try_into()?)
+                if value.has_no_value(){
+                    None
+                }else{
+                    Some(value.try_into()?)
+                }
             }else{
                 None
             },
