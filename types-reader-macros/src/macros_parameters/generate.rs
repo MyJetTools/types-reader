@@ -197,13 +197,25 @@ fn read_param(
         }
     }
 
-    if ident_is_allowed {
-        return quote::quote! {
-          value.get_named_param(#prop_name)?.unwrap_as_value()?.unwrap_any_value_as_str()?.try_into()?,
-        };
+    if default {
+        if ident_is_allowed {
+            return quote::quote! {
+              value.get_value_from_single_or_named(#prop_name)?.unwrap_any_value_as_str()?.try_into()?,
+            };
+        } else {
+            return quote::quote! {
+              value.get_value_from_single_or_named(#prop_name)?.try_into()?,
+            };
+        }
     } else {
-        return quote::quote! {
-          value.get_named_param(#prop_name)?.try_into()?,
-        };
+        if ident_is_allowed {
+            return quote::quote! {
+              value.get_named_param(#prop_name)?.unwrap_as_value()?.unwrap_any_value_as_str()?.try_into()?,
+            };
+        } else {
+            return quote::quote! {
+              value.get_named_param(#prop_name)?.try_into()?,
+            };
+        }
     }
 }
