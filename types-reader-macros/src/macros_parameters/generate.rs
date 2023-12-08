@@ -3,6 +3,8 @@ use std::str::FromStr;
 use proc_macro::TokenStream;
 use types_reader_core::{PropertyType, StructureSchema};
 
+pub const OBJECT_VALUE_TYPE_NAME: &str = "ObjectValue";
+
 pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
     let ast: syn::DeriveInput = syn::parse(input).unwrap();
     let structure_schema = StructureSchema::new(&ast)?;
@@ -50,6 +52,15 @@ pub fn generate_content(
         let fn_name = proc_macro2::TokenStream::from_str(fn_name).unwrap();
         let opt_fn_name = proc_macro2::TokenStream::from_str(opt_fn_name).unwrap();
 
+        if let PropertyType::RefTo { ty, lifetime: _ } = &property.ty {
+            if ty.as_str().as_str() == OBJECT_VALUE_TYPE_NAME {
+                reading_props.push(quote::quote! {
+                    #prop_ident: value.#fn_name(#prop_name)?.get_value()?,
+                });
+                continue;
+            }
+        }
+
         if property.ty.is_vec() {
             reading_props.push(quote::quote!(#prop_ident: {
                 let mut result = Vec::new();
@@ -62,6 +73,19 @@ pub fn generate_content(
                 result
             }));
         } else if let PropertyType::OptionOf(sub_ty) = &property.ty {
+            if let PropertyType::RefTo { ty, lifetime: _ } = sub_ty.as_ref() {
+                if ty.as_str().as_str() == OBJECT_VALUE_TYPE_NAME {
+                    reading_props.push(
+                        quote::quote!(#prop_ident: if let Some(value) = value.#opt_fn_name(#prop_name){
+                        Some(value.get_value()?)
+                    }else{
+                        None
+                    }, ),
+                    );
+                    continue;
+                }
+            }
+
             if sub_ty.is_vec() {
                 reading_props.push(
                     quote::quote!(#prop_ident: if let Some(value) = value.#opt_fn_name(#prop_name){
@@ -119,23 +143,6 @@ pub fn generate_content(
     }
 
     let name_ident = structure_schema.name.get_name_ident();
-
-    /*
-    let from_tokens_object = structure_schema.name.render_try_into_implementation(
-        true,
-        quote::quote!(types_reader::TokensObject),
-        quote::quote!(syn::Error),
-        || {
-            quote::quote! {
-                #name_ident::check_fields(self)?;
-                    let result = #name_ident{
-                        #( #reading_props )*
-                    };
-                    Ok(result)
-            }
-        },
-    );
-     */
 
     let from_tokens_object = structure_schema.name.render_try_from_implementation(
         true,
