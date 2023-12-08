@@ -113,10 +113,24 @@ fn generate_reading_op(
     indent_is_allowed: bool,
 ) -> proc_macro2::TokenStream {
     if let PropertyType::RefTo { ty, lifetime: _ } = sub_ty {
-        if ty.as_str().as_str() == TOKENS_OBJECT_TYPE_NAME {
-            return quote::quote! {
-                 value.try_get_named_param(#prop_name),
-            };
+        match ty.as_str().as_str() {
+            TOKENS_OBJECT_TYPE_NAME => {
+                return quote::quote! {
+                     value.try_get_named_param(#prop_name),
+                };
+            }
+            OPTIONAL_OBJECT_VALUE_TYPE_NAME => {
+                if reading_single_param {
+                    return quote::quote! {
+                         value.try_get_value_from_single_or_named(#prop_name),
+                    };
+                } else {
+                    return quote::quote! {
+                         value.try_get_named_param(#prop_name),
+                    };
+                }
+            }
+            _ => {}
         }
     }
 
