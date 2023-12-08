@@ -13,6 +13,7 @@ pub struct MyStruct {
     pub field1: ShouldBeAuthorized,
     #[has_attribute]
     pub as_str: bool,
+    pub field2: Option<ShouldBeAuthorized>,
 }
 
 #[cfg(test)]
