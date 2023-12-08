@@ -13,4 +13,7 @@ pub struct HttpActionResult<'s> {
     pub description: SubParameters<'s>,
     #[allow_ident]
     pub model: Option<&'s str>,
+
+    pub as_vec: Vec<SubParameters<'s>>,
+    pub as_vec_opt: Option<Vec<SubParameters<'s>>>,
 }

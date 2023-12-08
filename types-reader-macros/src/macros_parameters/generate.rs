@@ -134,6 +134,25 @@ fn generate_reading_op(
         }
     }
 
+    if sub_ty.is_vec() {
+        return quote::quote! {
+            if let Some(value) = value.try_get_named_param(#prop_name){
+
+                let items = value.unwrap_as_vec()?;
+                let mut result = Vec::new();
+
+                for item in items {
+                    result.push(item.try_into()?);
+                }
+
+                Some(result)
+
+            }else{
+                None
+            },
+        };
+    }
+
     let reading_part = if indent_is_allowed {
         quote::quote! {
             Some(value.unwrap_any_value_as_str()?.try_into()?)
@@ -181,7 +200,7 @@ fn generate_reading_from_vec(prop_name: &str) -> proc_macro2::TokenStream {
     quote::quote!({
         {
             let mut result = Vec::new();
-            let items = value.try_get_named_param(#prop_name).unwrap_as_vec()?;
+            let items = value.get_named_param(#prop_name)?.unwrap_as_vec()?;
 
             for item in items {
                 result.push(item.try_into()?);
@@ -189,7 +208,7 @@ fn generate_reading_from_vec(prop_name: &str) -> proc_macro2::TokenStream {
 
             result
         }
-    })
+    },)
 }
 
 fn read_param(
