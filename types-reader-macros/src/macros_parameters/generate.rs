@@ -47,7 +47,12 @@ pub fn generate_content(
         if property.ty.is_vec() {
             reading_props.push(generate_reading_from_vec(&prop_name));
         } else if let PropertyType::OptionOf(sub_ty) = &property.ty {
-            reading_props.push(generate_reading_op(is_default, &prop_name, sub_ty));
+            reading_props.push(generate_reading_op(
+                is_default,
+                &prop_name,
+                sub_ty,
+                ident_is_allowed,
+            ));
         } else {
             reading_props.push(read_param(
                 &prop_name,
@@ -105,6 +110,7 @@ fn generate_reading_op(
     reading_single_param: bool,
     prop_name: &str,
     sub_ty: &PropertyType,
+    indent_is_allowed: bool,
 ) -> proc_macro2::TokenStream {
     if let PropertyType::RefTo { ty, lifetime: _ } = sub_ty {
         if ty.as_str().as_str() == TOKENS_OBJECT_TYPE_NAME {
@@ -114,6 +120,16 @@ fn generate_reading_op(
         }
     }
 
+    let reading_part = if indent_is_allowed {
+        quote::quote! {
+            Some(value.unwrap_any_value_as_str()?.try_into()?)
+        }
+    } else {
+        quote::quote! {
+                Some(value.try_into()?)
+        }
+    };
+
     if reading_single_param {
         return quote::quote! {
 
@@ -121,7 +137,7 @@ fn generate_reading_op(
                 if value.has_no_value(){
                     None
                 }else{
-                    Some(value.try_into()?)
+                    #reading_part
                 }
             }else{
                 None
@@ -136,7 +152,7 @@ fn generate_reading_op(
                 if value.has_no_value(){
                     None
                 }else{
-                    Some(value.try_into()?)
+                    #reading_part
                 }
 
             }else{
