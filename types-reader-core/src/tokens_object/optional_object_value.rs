@@ -20,6 +20,16 @@ impl OptionalObjectValue {
             Self::Value { .. } => 1,
         }
     }
+
+    pub fn try_unwrap_value(&self) -> Option<&ObjectValue> {
+        match self {
+            Self::Empty(_) => None,
+            Self::None(_) => None,
+            Self::SingleValue(value) => Some(value),
+            Self::Value { value, .. } => Some(value),
+        }
+    }
+
     pub fn unwrap_value(&self) -> Result<&ObjectValue, syn::Error> {
         match self {
             Self::Empty(itm) => Err(syn::Error::new_spanned(
@@ -80,6 +90,15 @@ impl OptionalObjectValue {
         }
     }
 
+    pub fn try_as_string(&self) -> Result<Option<&StringValue>, syn::Error> {
+        match self {
+            Self::Empty(_) => Ok(None),
+            Self::None(_) => Ok(None),
+            Self::SingleValue(value) => Ok(Some(value.as_string()?)),
+            Self::Value { value, .. } => Ok(Some(value.as_string()?)),
+        }
+    }
+
     pub fn as_number(&self) -> Result<&NumberValue, syn::Error> {
         match self {
             Self::Empty(id) => Err(syn::Error::new_spanned(id, "Expecting Number value")),
@@ -92,6 +111,15 @@ impl OptionalObjectValue {
         }
     }
 
+    pub fn try_as_number(&self) -> Result<Option<&NumberValue>, syn::Error> {
+        match self {
+            Self::Empty(_) => Ok(None),
+            Self::None(_) => Ok(None),
+            Self::SingleValue(value) => Ok(Some(value.as_number()?)),
+            Self::Value { value, .. } => Ok(Some(value.as_number()?)),
+        }
+    }
+
     pub fn as_double(&self) -> Result<&DoubleValue, syn::Error> {
         match self {
             Self::Empty(id) => Err(syn::Error::new_spanned(id, "Expecting Float value")),
@@ -101,6 +129,15 @@ impl OptionalObjectValue {
             )),
             Self::SingleValue(value) => value.as_double(),
             Self::Value { value, .. } => value.as_double(),
+        }
+    }
+
+    pub fn try_as_double(&self) -> Result<Option<&DoubleValue>, syn::Error> {
+        match self {
+            Self::Empty(_) => Ok(None),
+            Self::None(_) => Ok(None),
+            Self::SingleValue(value) => Ok(Some(value.as_double()?)),
+            Self::Value { value, .. } => Ok(Some(value.as_double()?)),
         }
     }
 
@@ -124,6 +161,15 @@ impl OptionalObjectValue {
             Self::Value { value, .. } => value.as_bool(),
         }
     }
+
+    pub fn try_as_bool(&self) -> Result<Option<&BoolValue>, syn::Error> {
+        match self {
+            Self::Empty(_) => Ok(None),
+            Self::None(_) => Ok(None),
+            Self::SingleValue(value) => Ok(Some(value.as_bool()?)),
+            Self::Value { value, .. } => Ok(Some(value.as_bool()?)),
+        }
+    }
 }
 
 impl<'s> TryInto<&'s ObjectValue> for &'s OptionalObjectValue {
@@ -131,6 +177,14 @@ impl<'s> TryInto<&'s ObjectValue> for &'s OptionalObjectValue {
 
     fn try_into(self) -> Result<&'s ObjectValue, Self::Error> {
         self.unwrap_value()
+    }
+}
+
+impl<'s> TryInto<Option<&'s ObjectValue>> for &'s OptionalObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<Option<&'s ObjectValue>, Self::Error> {
+        Ok(self.try_unwrap_value())
     }
 }
 
@@ -143,12 +197,34 @@ impl<'s> TryInto<&'s str> for &'s OptionalObjectValue {
     }
 }
 
+impl<'s> TryInto<Option<&'s str>> for &'s OptionalObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<Option<&'s str>, Self::Error> {
+        match self.try_as_string()? {
+            Some(value) => Ok(Some(value.as_str())),
+            None => Ok(None),
+        }
+    }
+}
+
 impl<'s> TryInto<String> for &'s OptionalObjectValue {
     type Error = syn::Error;
 
     fn try_into(self) -> Result<String, Self::Error> {
         let value = self.as_string()?.as_str();
         Ok(value.to_string())
+    }
+}
+
+impl<'s> TryInto<Option<String>> for &'s OptionalObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<Option<String>, Self::Error> {
+        match self.try_as_string()? {
+            Some(value) => Ok(Some(value.as_str().to_string())),
+            None => Ok(None),
+        }
     }
 }
 
@@ -161,12 +237,34 @@ impl<'s> TryInto<i8> for &'s OptionalObjectValue {
     }
 }
 
+impl<'s> TryInto<Option<i8>> for &'s OptionalObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<Option<i8>, Self::Error> {
+        match self.try_as_number()? {
+            Some(value) => Ok(Some(value.as_i8())),
+            None => Ok(None),
+        }
+    }
+}
+
 impl<'s> TryInto<u8> for &'s OptionalObjectValue {
     type Error = syn::Error;
 
     fn try_into(self) -> Result<u8, Self::Error> {
         let value = self.as_number()?.as_u8();
         Ok(value)
+    }
+}
+
+impl<'s> TryInto<Option<u8>> for &'s OptionalObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<Option<u8>, Self::Error> {
+        match self.try_as_number()? {
+            Some(value) => Ok(Some(value.as_u8())),
+            None => Ok(None),
+        }
     }
 }
 
@@ -179,12 +277,34 @@ impl<'s> TryInto<i16> for &'s OptionalObjectValue {
     }
 }
 
+impl<'s> TryInto<Option<i16>> for &'s OptionalObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<Option<i16>, Self::Error> {
+        match self.try_as_number()? {
+            Some(value) => Ok(Some(value.as_i16())),
+            None => Ok(None),
+        }
+    }
+}
+
 impl<'s> TryInto<u16> for &'s OptionalObjectValue {
     type Error = syn::Error;
 
     fn try_into(self) -> Result<u16, Self::Error> {
         let value = self.as_number()?.as_u16();
         Ok(value)
+    }
+}
+
+impl<'s> TryInto<Option<u16>> for &'s OptionalObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<Option<u16>, Self::Error> {
+        match self.try_as_number()? {
+            Some(value) => Ok(Some(value.as_u16())),
+            None => Ok(None),
+        }
     }
 }
 
@@ -197,12 +317,34 @@ impl<'s> TryInto<i32> for &'s OptionalObjectValue {
     }
 }
 
+impl<'s> TryInto<Option<i32>> for &'s OptionalObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<Option<i32>, Self::Error> {
+        match self.try_as_number()? {
+            Some(value) => Ok(Some(value.as_i32())),
+            None => Ok(None),
+        }
+    }
+}
+
 impl<'s> TryInto<u32> for &'s OptionalObjectValue {
     type Error = syn::Error;
 
     fn try_into(self) -> Result<u32, Self::Error> {
         let value = self.as_number()?.as_u32();
         Ok(value)
+    }
+}
+
+impl<'s> TryInto<Option<u32>> for &'s OptionalObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<Option<u32>, Self::Error> {
+        match self.try_as_number()? {
+            Some(value) => Ok(Some(value.as_u32())),
+            None => Ok(None),
+        }
     }
 }
 
@@ -215,12 +357,34 @@ impl<'s> TryInto<i64> for &'s OptionalObjectValue {
     }
 }
 
+impl<'s> TryInto<Option<i64>> for &'s OptionalObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<Option<i64>, Self::Error> {
+        match self.try_as_number()? {
+            Some(value) => Ok(Some(value.as_i64())),
+            None => Ok(None),
+        }
+    }
+}
+
 impl<'s> TryInto<u64> for &'s OptionalObjectValue {
     type Error = syn::Error;
 
     fn try_into(self) -> Result<u64, Self::Error> {
         let value = self.as_number()?.as_u64();
         Ok(value)
+    }
+}
+
+impl<'s> TryInto<Option<u64>> for &'s OptionalObjectValue {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<Option<u64>, Self::Error> {
+        match self.try_as_number()? {
+            Some(value) => Ok(Some(value.as_u64())),
+            None => Ok(None),
+        }
     }
 }
 

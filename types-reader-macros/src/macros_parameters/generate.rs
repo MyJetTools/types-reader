@@ -126,10 +126,9 @@ fn generate_reading_op(
         };
     } else {
         return quote::quote! {
-
             if let Some(value) = value.try_get_named_param(#prop_name){
                 let value = value.unwrap_as_value()?;
-                Some(value.try_into()?)
+                value.try_into()?
             }else{
                 None
             },
