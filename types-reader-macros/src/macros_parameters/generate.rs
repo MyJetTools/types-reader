@@ -1,9 +1,9 @@
-use std::str::FromStr;
-
 use proc_macro::TokenStream;
-use types_reader_core::{PropertyType, StructureSchema};
+use types_reader_core::{PropertyType, StructProperty, StructureSchema};
 
 pub const OBJECT_VALUE_TYPE_NAME: &str = "ObjectValue";
+pub const TOKENS_OBJECT_TYPE_NAME: &str = "TokensObject";
+pub const OPTIONAL_OBJECT_VALUE_TYPE_NAME: &str = "OptionalObjectValue";
 
 pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
     let ast: syn::DeriveInput = syn::parse(input).unwrap();
@@ -21,6 +21,8 @@ pub fn generate_content(
 
         let prop_name = prop_ident.to_string();
 
+        reading_props.push(quote::quote!(#prop_ident: ));
+
         //todo!("Temporary reading ident and is_any_value_as_string is the same");
         let ident_is_allowed = super::utils::is_ident_allowed(property)
             || super::utils::is_any_value_as_string(property);
@@ -33,112 +35,26 @@ pub fn generate_content(
                     .throw_error("'has_attribute' can be applied only to bool property");
             } else {
                 reading_props.push(quote::quote! {
-                    #prop_ident: value.has_param(#prop_name),
+                    value.has_param(#prop_name),
                 });
             }
 
             continue;
         }
 
-        let (fn_name, opt_fn_name) = if super::utils::is_default(property) {
-            (
-                "get_from_single_or_named",
-                "try_get_value_from_single_or_named",
-            )
-        } else {
-            ("get_named_param", "try_get_named_param")
-        };
-
-        let fn_name = proc_macro2::TokenStream::from_str(fn_name).unwrap();
-        let opt_fn_name = proc_macro2::TokenStream::from_str(opt_fn_name).unwrap();
-
-        if let PropertyType::RefTo { ty, lifetime: _ } = &property.ty {
-            if ty.as_str().as_str() == OBJECT_VALUE_TYPE_NAME {
-                reading_props.push(quote::quote! {
-                    #prop_ident: value.#fn_name(#prop_name)?.get_value()?,
-                });
-                continue;
-            }
-        }
+        let is_default = super::utils::is_default(property);
 
         if property.ty.is_vec() {
-            reading_props.push(quote::quote!(#prop_ident: {
-                let mut result = Vec::new();
-                let items = value.#fn_name(#prop_name)?.get_vec()?;
-
-                for item in items {
-                    result.push(item.try_into()?);
-                }
-
-                result
-            }));
+            reading_props.push(generate_reading_from_vec(&prop_name));
         } else if let PropertyType::OptionOf(sub_ty) = &property.ty {
-            if let PropertyType::RefTo { ty, lifetime: _ } = sub_ty.as_ref() {
-                if ty.as_str().as_str() == OBJECT_VALUE_TYPE_NAME {
-                    reading_props.push(
-                        quote::quote!(#prop_ident: if let Some(value) = value.#opt_fn_name(#prop_name){
-                        Some(value.get_value()?)
-                    }else{
-                        None
-                    }, ),
-                    );
-                    continue;
-                }
-            }
-
-            if sub_ty.is_vec() {
-                reading_props.push(
-                    quote::quote!(#prop_ident: if let Some(value) = value.#opt_fn_name(#prop_name){
-                    let items = value.get_vec()?;
-                    let mut result = Vec::new();
-                    for item in items {
-                        result.push(item.try_into()?);
-                    }
-    
-                    Some(result)
-                }else{
-                    None
-                }, ),
-                );
-            } else {
-                if ident_is_allowed {
-                    reading_props.push(
-                        quote::quote!(#prop_ident: if let Some(value) = value.#opt_fn_name(#prop_name){
-                        Some(value.get_value()?.any_value_as_str().try_into()?)
-                    }else{
-                        None
-                    }, ),
-                    );
-                } else {
-                    reading_props.push(
-                        quote::quote!(#prop_ident: if let Some(value) = value.#opt_fn_name(#prop_name){
-                        Some(value.try_into()?)
-                    }else{
-                        None
-                    }, ),
-                    );
-                }
-            }
-        } else if let PropertyType::RefTo { ty, lifetime: _ } = &property.ty {
-            if ty.as_str().as_str() == "TokensObject" {
-                reading_props.push(quote::quote! {
-                    #prop_ident: value.#fn_name(#prop_name)?,
-                });
-            } else {
-                reading_props.push(quote::quote! {
-                    #prop_ident: value.#fn_name(#prop_name)?.try_into()?,
-                });
-            }
+            reading_props.push(generate_reading_op(is_default, &prop_name, sub_ty));
         } else {
-            if ident_is_allowed {
-                reading_props.push(quote::quote! {
-                    #prop_ident: value.#fn_name(#prop_name)?.get_value()?.any_value_as_str().try_into()?,
-                });
-            } else {
-                reading_props.push(quote::quote! {
-                    #prop_ident: value.#fn_name(#prop_name)?.try_into()?,
-                });
-            }
+            reading_props.push(read_param(
+                &prop_name,
+                property,
+                ident_is_allowed,
+                is_default,
+            ));
         }
     }
 
@@ -183,4 +99,111 @@ pub fn generate_content(
     };
 
     Ok(result)
+}
+
+fn generate_reading_op(
+    reading_single_param: bool,
+    prop_name: &str,
+    sub_ty: &PropertyType,
+) -> proc_macro2::TokenStream {
+    if let PropertyType::RefTo { ty, lifetime: _ } = sub_ty {
+        if ty.as_str().as_str() == TOKENS_OBJECT_TYPE_NAME {
+            return quote::quote! {
+                 value.try_get_named_param(#prop_name),
+            };
+        }
+    }
+
+    if reading_single_param {
+        return quote::quote! {
+
+            if let Some(value) = value.try_get_value_from_single_or_named(#prop_name)?{
+                Some(value.try_into()?)
+            }else{
+                None
+            },
+
+        };
+    } else {
+        return quote::quote! {
+
+            if let Some(value) = value.try_get_named_param(#prop_name){
+                let value = value.unwrap_as_value()?;
+                Some(value.try_into()?)
+            }else{
+                None
+            },
+
+        };
+    }
+}
+
+fn generate_reading_from_vec(prop_name: &str) -> proc_macro2::TokenStream {
+    quote::quote!({
+        {
+            let mut result = Vec::new();
+            let items = value.try_get_named_param(#prop_name).unwrap_as_vec()?;
+
+            for item in items {
+                result.push(item.try_into()?);
+            }
+
+            result
+        }
+    })
+}
+
+fn read_param(
+    prop_name: &str,
+    property: &StructProperty,
+    ident_is_allowed: bool,
+    default: bool,
+) -> proc_macro2::TokenStream {
+    if let PropertyType::RefTo { ty, .. } = &property.ty {
+        match ty.as_str().as_str() {
+            TOKENS_OBJECT_TYPE_NAME => {
+                return quote::quote! {
+                     value.get_named_param(#prop_name)?,
+                };
+            }
+            OBJECT_VALUE_TYPE_NAME => {
+                if default {
+                    return quote::quote! {
+                         value.get_value_from_single_or_named(#prop_name)?
+                         .try_into()?,
+                    };
+                } else {
+                    return quote::quote! {
+                         value.get_named_param(#prop_name)?
+                         .unwrap_as_value()?
+                         .try_into()?,
+                    };
+                }
+            }
+
+            OPTIONAL_OBJECT_VALUE_TYPE_NAME => {
+                if default {
+                    return quote::quote! {
+                         value.get_value_from_single_or_named(#prop_name)?
+                    };
+                } else {
+                    return quote::quote! {
+                         value.get_named_param(#prop_name)?
+                         .unwrap_as_value()?
+                    };
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if ident_is_allowed {
+        return quote::quote! {
+          value.get_named_param(#prop_name)?.unwrap_as_value()?.unwrap_any_value_as_str()?.try_into()?,
+        };
+    } else {
+        return quote::quote! {
+          value.get_named_param(#prop_name)?.try_into()?,
+        };
+    }
 }

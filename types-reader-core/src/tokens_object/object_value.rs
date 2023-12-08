@@ -127,8 +127,14 @@ impl ObjectValue {
         }
     }
 
-    pub fn any_value_as_str<'s>(&'s self) -> &'s dyn AnyValueAsStr<'s> {
-        self
+    pub fn any_value_as_str(&self) -> &str {
+        match self {
+            Self::String(value) => value.as_str(),
+            Self::Number(value) => value.as_str(),
+            Self::Double(value) => value.as_str(),
+            Self::Bool(value) => value.as_str(),
+            Self::Ident(value) => value.as_str(),
+        }
     }
 
     pub fn as_ref(&self) -> &Self {
@@ -214,15 +220,7 @@ impl TryInto<ObjectValue> for TokenValue {
 
 impl<'s> AnyValueAsStr<'s> for ObjectValue {
     fn as_str(&'s self) -> &str {
-        let result = match self {
-            ObjectValue::String(value) => value.as_str(),
-            ObjectValue::Number(value) => value.as_str(),
-            ObjectValue::Double(value) => value.as_str(),
-            ObjectValue::Bool(value) => value.as_str(),
-            ObjectValue::Ident(value) => value.as_str(),
-        };
-
-        result
+        self.any_value_as_str()
     }
 
     fn throw_error(&self, message: &str) -> syn::Error {

@@ -145,11 +145,25 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
             }
         }
 
+        impl<'s> TryInto<#name_ident> for &'s types_reader::OptionalObjectValue{
+            type Error = syn::Error;
+            fn try_into(self) -> Result<#name_ident, Self::Error> {
+                let value = self.as_string()?.as_str();
+
+                if let Some(value) = #name_ident::try_from_str(value){
+                    return Ok(value);
+                }
+
+                #try_into_error
+
+            }
+        }
+
         impl<'s> TryInto<#name_ident> for &'s types_reader::TokensObject{
             type Error = syn::Error;
             fn try_into(self) -> Result<#name_ident, Self::Error> {
                 #( #generated_model_cases )*
-                let value = self.get_value()?;
+                let value = self.unwrap_as_value()?;
                 Ok(value.try_into()?)
             }
         }

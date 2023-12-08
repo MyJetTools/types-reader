@@ -1,16 +1,11 @@
-use crate::{NextToken, ObjectValue, TokensReader, ValueAsIdent};
+use crate::{NextToken, OptionalObjectValue, TokensReader};
 
 use proc_macro2::TokenStream;
 
 use std::collections::HashMap;
 #[derive(Debug)]
 pub enum TokensObject {
-    None(TokenStream),
-    ValueOnly(ObjectValue),
-    Value {
-        param_name: syn::Ident,
-        value: ObjectValue,
-    },
+    Value(OptionalObjectValue),
     Object {
         token_stream: TokenStream,
         items: HashMap<String, TokensObject>,
@@ -28,13 +23,19 @@ impl TokensObject {
         let next_token = token_reader.try_read_next_token()?;
 
         if next_token.is_none() {
-            return Ok(Self::None(token_reader.into_token_stream()));
+            return Ok(Self::Value(OptionalObjectValue::Empty(
+                token_reader.into_token_stream(),
+            )));
         }
 
         let next_token = next_token.unwrap();
 
         let mut ident_token = match next_token.try_unwrap_as_value() {
-            Ok(token_value) => return Ok(Self::ValueOnly(token_value.try_into()?)),
+            Ok(token_value) => {
+                return Ok(Self::Value(OptionalObjectValue::SingleValue(
+                    token_value.try_into()?,
+                )));
+            }
             Err(next_token) => next_token,
         };
 
@@ -45,7 +46,7 @@ impl TokensObject {
 
             if token_equal.is_none() {
                 let id = param_name.to_string();
-                items.insert(id, Self::None(quote::quote!(#param_name)));
+                items.insert(id, Self::Value(OptionalObjectValue::None(param_name)));
                 break;
             }
 
@@ -53,7 +54,7 @@ impl TokensObject {
 
             if token_equal.if_spacing(Some(&SPACE_SYMBOLS)) {
                 let id = param_name.to_string();
-                items.insert(id, Self::None(quote::quote!(#param_name)));
+                items.insert(id, Self::Value(OptionalObjectValue::None(param_name)));
             } else if token_equal.if_spacing(Some(&[':', '='])) {
                 let token_value = token_reader.read_next_token()?;
                 let id = param_name.to_string();
@@ -83,45 +84,13 @@ impl TokensObject {
     }
 
     pub fn create_empty(token_stream: TokenStream) -> Self {
-        Self::None(token_stream)
+        Self::Value(OptionalObjectValue::Empty(token_stream))
     }
 
     pub fn has_no_value(&self) -> bool {
         match self {
-            TokensObject::None(_) => true,
+            TokensObject::Value(value) => value.has_no_value(),
             _ => false,
-        }
-    }
-    pub fn get_single_param_as_ident(&self) -> Result<&ValueAsIdent, syn::Error> {
-        match self {
-            Self::None(token_stream) => Err(syn::Error::new_spanned(
-                token_stream.clone(),
-                "Attribute has no params",
-            )),
-
-            Self::ValueOnly(value) => {
-                return Err(
-                    value.throw_error("Can not get ident. Attribute has parameter as value")
-                );
-            }
-
-            Self::Value { value, .. } => {
-                return Err(
-                    value.throw_error("Can not get ident. Attribute has parameter as value")
-                );
-            }
-            Self::Vec { token_stream, .. } => {
-                return Err(syn::Error::new_spanned(
-                    token_stream.clone(),
-                    "Can not get ident. Attribute parameters is array",
-                ));
-            }
-            Self::Object { token_stream, .. } => {
-                return Err(syn::Error::new_spanned(
-                    token_stream.clone(),
-                    "Can not get ident. Attribute parameters is object",
-                ));
-            }
         }
     }
 
@@ -130,11 +99,7 @@ impl TokensObject {
         used_parameters: &[&'static str],
     ) -> Result<(), syn::Error> {
         match self {
-            Self::None(_) => return Ok(()),
-            Self::ValueOnly(_) => {
-                return Ok(());
-            }
-            Self::Value { .. } => {
+            Self::Value(_) => {
                 return Ok(());
             }
             Self::Vec { .. } => {
@@ -163,9 +128,7 @@ impl TokensObject {
 
     pub fn throw_error_at_value_token(&self, message: &str) -> syn::Error {
         match self {
-            TokensObject::None(token) => syn::Error::new_spanned(token, message),
-            TokensObject::ValueOnly(value) => value.throw_error(message),
-            TokensObject::Value { value, .. } => value.throw_error(message),
+            TokensObject::Value(value) => value.throw_error(message),
             TokensObject::Object { token_stream, .. } => {
                 syn::Error::new_spanned(token_stream, message)
             }
@@ -177,9 +140,7 @@ impl TokensObject {
 
     pub fn throw_error_at_param_token(&self, message: &str) -> syn::Error {
         match self {
-            TokensObject::None(token) => syn::Error::new_spanned(token, message),
-            TokensObject::ValueOnly(value) => value.throw_error(message),
-            TokensObject::Value { param_name, .. } => syn::Error::new_spanned(param_name, message),
+            TokensObject::Value(value) => value.throw_error_at_ident(message),
             TokensObject::Object { token_stream, .. } => {
                 syn::Error::new_spanned(token_stream, message)
             }
@@ -189,7 +150,7 @@ impl TokensObject {
         }
     }
 
-    pub fn get_vec(&self) -> Result<&Vec<Self>, syn::Error> {
+    pub fn unwrap_as_vec(&self) -> Result<&Vec<Self>, syn::Error> {
         match self.try_get_vec() {
             Some(value) => Ok(value),
             None => Err(self.throw_error_at_param_token("Value should be an object list")),
@@ -207,14 +168,6 @@ impl TokensObject {
         match self {
             Self::Object { .. } => true,
             _ => false,
-        }
-    }
-
-    pub fn try_get_single_param(&self) -> Option<&ObjectValue> {
-        match self {
-            Self::ValueOnly(value) => Some(value),
-            Self::Value { value, .. } => Some(value),
-            _ => None,
         }
     }
 
@@ -237,6 +190,25 @@ impl TokensObject {
         }
     }
 
+    pub fn try_get_value_from_single_or_named(
+        &self,
+        param_name: &str,
+    ) -> Result<Option<&OptionalObjectValue>, syn::Error> {
+        match self {
+            Self::Value(value) => return Ok(Some(value)),
+            Self::Object { .. } => match self {
+                Self::Object { items, .. } => match items.get(param_name) {
+                    Some(value) => return Ok(Some(value.unwrap_as_value()?)),
+                    None => {}
+                },
+                _ => {}
+            },
+            _ => {}
+        }
+
+        Ok(None)
+    }
+
     pub fn has_param(&self, param_name: &str) -> bool {
         match self {
             Self::Object { items, .. } => items.contains_key(param_name),
@@ -244,21 +216,31 @@ impl TokensObject {
         }
     }
 
-    pub fn get_from_single_or_named(&self, param_name: &str) -> Result<&ObjectValue, syn::Error> {
-        if let Some(result) = self.try_get_single_param() {
-            return Ok(result);
+    pub fn get_value_from_single_or_named(
+        &self,
+        param_name: &str,
+    ) -> Result<&OptionalObjectValue, syn::Error> {
+        match self {
+            TokensObject::Value(value) => {
+                return Ok(value);
+            }
+            TokensObject::Object { items, .. } => match items.get(param_name) {
+                Some(value) => return Ok(value.unwrap_as_value()?),
+                None => {
+                    return Err(self.throw_error_at_param_token(
+                        format!("Field '{}' is required", param_name).as_str(),
+                    ))
+                }
+            },
+            TokensObject::Vec { .. } => {
+                return Err(self.throw_error_at_param_token("Can not get value. Value is array"))
+            }
         }
-
-        self.get_named_param(param_name)?.get_value()
     }
 
-    pub fn get_value(&self) -> Result<&ObjectValue, syn::Error> {
+    pub fn unwrap_as_value(&self) -> Result<&OptionalObjectValue, syn::Error> {
         match self {
-            TokensObject::ValueOnly(value) => Ok(value),
-            TokensObject::Value { value, .. } => Ok(value),
-            TokensObject::None(_) => {
-                Err(self.throw_error_at_param_token("Can not get empty value"))
-            }
+            TokensObject::Value(value) => Ok(value),
 
             TokensObject::Object { .. } => {
                 Err(self.throw_error_at_param_token("Can not get value. Value is object"))
@@ -269,42 +251,10 @@ impl TokensObject {
         }
     }
 
-    pub fn try_get_value(&self) -> Option<&ObjectValue> {
-        match self {
-            TokensObject::Value { value, .. } => Some(value),
-            TokensObject::ValueOnly(value) => Some(value),
-            _ => None,
-        }
-    }
-
-    pub fn get_value_from_single_or_named(
-        &self,
-        param_name: &str,
-    ) -> Result<&ObjectValue, syn::Error> {
-        if let Some(result) = self.try_get_single_param() {
-            return Ok(result);
-        }
-
-        if let Some(result) = self.try_get_named_param(param_name) {
-            return result.get_value();
-        }
-
-        Err(self.throw_error_at_param_token(format!("Field '{}' is required", param_name).as_str()))
-    }
-
-    pub fn try_get_value_from_single_or_named(&self, param_name: &str) -> Option<&ObjectValue> {
-        if let Some(result) = self.try_get_single_param() {
-            return Some(result);
-        }
-
-        self.try_get_named_param(param_name)?.try_get_value()
-    }
-
     pub fn len(&self) -> usize {
         match self {
-            Self::None(_) => 0,
-            Self::Value { .. } => 1,
-            Self::ValueOnly(_) => 1,
+            Self::Value(value) => value.get_len(),
+
             Self::Vec { items, .. } => items.len(),
             Self::Object { items, .. } => items.len(),
         }
@@ -327,20 +277,20 @@ impl TokensObject {
     fn read_value(param_name: syn::Ident, token_value: NextToken) -> Result<Self, syn::Error> {
         let next_token = match token_value.try_unwrap_as_value() {
             Ok(token_value) => {
-                return Ok(Self::Value {
-                    param_name,
+                return Ok(Self::Value(OptionalObjectValue::Value {
+                    name: param_name,
                     value: token_value.try_into()?,
-                })
+                }))
             }
             Err(next_token) => next_token,
         };
 
         let next_token = match next_token.try_unwrap_into_ident() {
             Ok(ident) => {
-                return Ok(Self::Value {
-                    param_name,
+                return Ok(Self::Value(OptionalObjectValue::Value {
+                    name: param_name,
                     value: ident.try_into()?,
-                })
+                }))
             }
             Err(next_token) => next_token,
         };
@@ -427,7 +377,7 @@ mod tests {
         let value = params_list
             .try_get_named_param("topic_id")
             .unwrap()
-            .get_value()
+            .unwrap_as_value()
             .unwrap()
             .as_string()
             .unwrap()
@@ -437,6 +387,7 @@ mod tests {
 
         let value = params_list
             .try_get_value_from_single_or_named("topic_id")
+            .unwrap()
             .unwrap()
             .as_string()
             .unwrap()
@@ -455,6 +406,7 @@ mod tests {
 
         let value = params_list
             .try_get_value_from_single_or_named("topic_id")
+            .unwrap()
             .unwrap()
             .as_string()
             .unwrap()
@@ -485,17 +437,35 @@ mod tests {
         let params_list = TokensObject::new(token_stream.into()).unwrap();
 
         let value = params_list.try_get_named_param("id").unwrap();
-        assert_eq!(value.get_value().unwrap().as_number().unwrap().as_i32(), 5);
+        assert_eq!(
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_number()
+                .unwrap()
+                .as_i32(),
+            5
+        );
 
         let value = params_list.try_get_named_param("name").unwrap();
         assert_eq!(
-            value.get_value().unwrap().as_string().unwrap().as_str(),
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_string()
+                .unwrap()
+                .as_str(),
             "5"
         );
 
         let value = params_list.try_get_named_param("description").unwrap();
         assert_eq!(
-            value.get_value().unwrap().as_string().unwrap().as_str(),
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_string()
+                .unwrap()
+                .as_str(),
             "Persist during 5 sec"
         );
 
@@ -511,11 +481,24 @@ mod tests {
         let params_list = TokensObject::new(token_stream.into()).unwrap();
 
         let value = params_list.try_get_named_param("id").unwrap();
-        assert_eq!(value.get_value().unwrap().as_number().unwrap().as_i32(), -1);
+        assert_eq!(
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_number()
+                .unwrap()
+                .as_i32(),
+            -1
+        );
 
         let value = params_list.try_get_named_param("description").unwrap();
         assert_eq!(
-            value.get_value().unwrap().as_string().unwrap().as_str(),
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_string()
+                .unwrap()
+                .as_str(),
             "Table already exists"
         );
     }
@@ -527,7 +510,7 @@ mod tests {
 
         let tokens_object = TokensObject::new(token_stream.into()).unwrap();
 
-        let value = tokens_object.get_value().unwrap();
+        let value = tokens_object.unwrap_as_value().unwrap();
 
         assert_eq!(value.as_number().unwrap().as_i32(), -256);
     }
@@ -540,7 +523,7 @@ mod tests {
 
         let tokens_object = TokensObject::new(token_stream.into()).unwrap();
 
-        let value = tokens_object.get_value().unwrap();
+        let value = tokens_object.unwrap_as_value().unwrap();
 
         assert_eq!(value.as_number().unwrap().as_i32(), 256);
     }
@@ -553,7 +536,7 @@ mod tests {
 
         let params_list = TokensObject::new(token_stream.into()).unwrap();
 
-        let value = params_list.get_value().unwrap();
+        let value = params_list.unwrap_as_value().unwrap();
 
         assert_eq!(value.as_double().unwrap().as_f64(), 256.34);
     }
@@ -566,7 +549,7 @@ mod tests {
 
         let params_list = TokensObject::new(token_stream.into()).unwrap();
 
-        let value = params_list.get_value().unwrap();
+        let value = params_list.unwrap_as_value().unwrap();
 
         assert_eq!(value.as_double().unwrap().as_f64(), -256.34);
     }
@@ -582,13 +565,23 @@ mod tests {
         let value = params_list.get_named_param("description").unwrap();
 
         assert_eq!(
-            value.get_value().unwrap().as_string().unwrap().as_str(),
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_string()
+                .unwrap()
+                .as_str(),
             "Persist table"
         );
 
         let value = params_list.get_named_param("default").unwrap();
         assert_eq!(
-            value.get_value().unwrap().as_bool().unwrap().get_value(),
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_bool()
+                .unwrap()
+                .get_value(),
             true
         );
     }
@@ -604,13 +597,23 @@ mod tests {
         let value = params_list.get_named_param("description").unwrap();
 
         assert_eq!(
-            value.get_value().unwrap().as_string().unwrap().as_str(),
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_string()
+                .unwrap()
+                .as_str(),
             "Persist table"
         );
 
         let value = params_list.get_named_param("default").unwrap();
         assert_eq!(
-            value.get_value().unwrap().as_bool().unwrap().get_value(),
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_bool()
+                .unwrap()
+                .get_value(),
             false
         );
     }
@@ -625,18 +628,36 @@ mod tests {
 
         let value = params_list.get_named_param("string_param").unwrap();
         assert_eq!(
-            value.get_value().unwrap().as_string().unwrap().as_str(),
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_string()
+                .unwrap()
+                .as_str(),
             "Persist table"
         );
 
         let object = params_list.get_named_param("object_param").unwrap();
 
         let value = object.get_named_param("first_object_param").unwrap();
-        assert_eq!(value.get_value().unwrap().as_number().unwrap().as_i32(), 1);
+        assert_eq!(
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_number()
+                .unwrap()
+                .as_i32(),
+            1
+        );
 
         let value = object.get_named_param("second_object_param").unwrap();
         assert_eq!(
-            value.get_value().unwrap().as_bool().unwrap().get_value(),
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_bool()
+                .unwrap()
+                .get_value(),
             true
         );
     }
@@ -651,36 +672,67 @@ mod tests {
 
         let value = params_list.get_named_param("first_param").unwrap();
         assert_eq!(
-            value.get_value().unwrap().as_string().unwrap().as_str(),
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_string()
+                .unwrap()
+                .as_str(),
             "Value"
         );
 
         let array_value = params_list.get_named_param("array_of_object").unwrap();
-        let objects = array_value.get_vec().unwrap();
+        let objects = array_value.unwrap_as_vec().unwrap();
 
         assert_eq!(2, objects.len());
 
         let first_object = objects.get(0).unwrap();
 
         let value = first_object.get_named_param("first_object_param").unwrap();
-        assert_eq!(value.get_value().unwrap().as_number().unwrap().as_i32(), 1);
+        assert_eq!(
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_number()
+                .unwrap()
+                .as_i32(),
+            1
+        );
 
         let value = first_object.get_named_param("second_object_param").unwrap();
         assert_eq!(
-            value.get_value().unwrap().as_bool().unwrap().get_value(),
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_bool()
+                .unwrap()
+                .get_value(),
             true
         );
 
         let second_object = objects.get(1).unwrap();
 
         let value = second_object.get_named_param("first_object_param").unwrap();
-        assert_eq!(value.get_value().unwrap().as_number().unwrap().as_i32(), 2);
+        assert_eq!(
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_number()
+                .unwrap()
+                .as_i32(),
+            2
+        );
 
         let value = second_object
             .get_named_param("second_object_param")
             .unwrap();
         assert_eq!(
-            value.get_value().unwrap().as_bool().unwrap().get_value(),
+            value
+                .unwrap_as_value()
+                .unwrap()
+                .as_bool()
+                .unwrap()
+                .get_value(),
             false
         );
     }

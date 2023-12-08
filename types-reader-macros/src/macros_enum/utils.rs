@@ -10,7 +10,7 @@ pub fn get_enum_str_value<'s>(case: &'s EnumCase) -> Result<StrOrString<'s>, syn
 
     let value = value.unwrap();
 
-    let value = value.get_from_single_or_named("value")?;
+    let value = value.get_value_from_single_or_named("value")?;
 
     let value: &str = value.try_into()?;
     Ok(value.into())

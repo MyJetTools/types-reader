@@ -11,7 +11,7 @@ pub fn generate(
     let token_objects: TokensObject = attr.try_into()?;
 
     let attribute_name = token_objects
-        .get_from_single_or_named("name")?
+        .get_value_from_single_or_named("name")?
         .as_string()?
         .as_str();
 

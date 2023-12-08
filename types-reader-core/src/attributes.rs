@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use proc_macro2::TokenStream;
 use quote::ToTokens;
 
-use crate::{ObjectValue, TokensObject};
+use crate::{OptionalObjectValue, TokensObject};
 
 pub trait MacrosAttribute {
     const NAME: &'static str;
@@ -105,35 +105,42 @@ impl<'s> Attributes<'s> {
         &'s self,
         attr_name: &str,
         param_name: &str,
-    ) -> Result<&'s ObjectValue, syn::Error> {
+    ) -> Result<&'s OptionalObjectValue, syn::Error> {
         let attr = self.get_attr(attr_name)?;
-
-        attr.get_from_single_or_named(param_name)
+        attr.get_value_from_single_or_named(param_name)
     }
 
     pub fn try_get_single_or_named_param(
         &'s self,
         attr_name: &str,
         param_name: &str,
-    ) -> Option<&'s ObjectValue> {
-        let attr = self.try_get_attr(attr_name)?;
-        attr.try_get_value_from_single_or_named(param_name)
+    ) -> Result<Option<&'s OptionalObjectValue>, syn::Error> {
+        match self.try_get_attr(attr_name) {
+            Some(attr) => attr.try_get_value_from_single_or_named(param_name),
+            None => Ok(None),
+        }
     }
 
     pub fn try_get_single_or_named_params<'d>(
         &'s self,
         attr_name: &str,
         param_names: impl Iterator<Item = &'d str>,
-    ) -> Option<&'s ObjectValue> {
-        let attr = self.try_get_attr(attr_name)?;
+    ) -> Result<Option<&'s OptionalObjectValue>, syn::Error> {
+        let attr = self.try_get_attr(attr_name);
+
+        if attr.is_none() {
+            return Ok(None);
+        }
+
+        let attr = attr.unwrap();
 
         for param_name in param_names {
-            if let Some(value) = attr.try_get_value_from_single_or_named(param_name) {
-                return Some(value);
+            if let Some(value) = attr.try_get_value_from_single_or_named(param_name)? {
+                return Ok(Some(value));
             }
         }
 
-        None
+        Ok(None)
     }
 
     pub fn has_attr(&self, name: &str) -> bool {
