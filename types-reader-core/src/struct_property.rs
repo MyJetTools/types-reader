@@ -84,12 +84,8 @@ impl<'s> StructProperty<'s> {
         TResult: MacrosAttribute + TryFrom<&'s TokensObject, Error = syn::Error>,
     >(
         &'s self,
-    ) -> Result<Option<Vec<TResult>>, syn::Error> {
+    ) -> Result<Vec<TResult>, syn::Error> {
         let attrs = self.attrs.get_attrs(TResult::NAME)?;
-
-        if attrs.len() == 0 {
-            return Ok(None);
-        }
 
         let mut result = Vec::with_capacity(attrs.len());
 
@@ -98,7 +94,7 @@ impl<'s> StructProperty<'s> {
             result.push(itm);
         }
 
-        Ok(Some(result))
+        Ok(result)
     }
 
     pub fn try_get_attributes<
