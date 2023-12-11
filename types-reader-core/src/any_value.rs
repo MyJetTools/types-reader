@@ -3,6 +3,7 @@ use crate::{
     ValueAsIdent,
 };
 
+#[derive(Clone)]
 pub enum AnyValue<'s> {
     String(&'s StringValue),
     Bool(&'s BoolValue),
