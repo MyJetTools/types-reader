@@ -5,6 +5,7 @@ pub const OBJECT_VALUE_TYPE_NAME: &str = "ObjectValue";
 pub const TOKENS_OBJECT_TYPE_NAME: &str = "TokensObject";
 pub const OPTIONAL_OBJECT_VALUE_TYPE_NAME: &str = "OptionalObjectValue";
 pub const MAYBE_EMPTY_VALUE_TYPE_NAME: &str = "MaybeEmptyValue";
+pub const ANY_VALUE_TYPE_NAME: &str = "AnyValue";
 
 pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
     let ast: syn::DeriveInput = syn::parse(input).unwrap();
@@ -154,7 +155,9 @@ fn generate_reading_op(
         };
     }
 
-    if sub_ty.as_str().as_str() == MAYBE_EMPTY_VALUE_TYPE_NAME {
+    if sub_ty.as_str().as_str() == MAYBE_EMPTY_VALUE_TYPE_NAME
+        || sub_ty.as_str().as_str() == ANY_VALUE_TYPE_NAME
+    {
         let any_value_as_string = if indent_is_allowed {
             quote::quote!(.unwrap_any_value_as_str())
         } else {
@@ -274,7 +277,9 @@ fn read_param(
         }
     }
 
-    if property.ty.as_str().as_str() == MAYBE_EMPTY_VALUE_TYPE_NAME {
+    let ty_str = property.ty.as_str();
+
+    if ty_str.as_str() == MAYBE_EMPTY_VALUE_TYPE_NAME || ty_str.as_str() == ANY_VALUE_TYPE_NAME {
         let any_value_as_string = if ident_is_allowed {
             quote::quote!(.unwrap_any_value_as_str())
         } else {

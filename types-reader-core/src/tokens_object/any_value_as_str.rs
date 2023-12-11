@@ -35,3 +35,14 @@ impl<'s> TryInto<MaybeEmptyValue<&'s str>> for &'s dyn AnyValueAsStr<'s> {
         Ok(self.try_as_str())
     }
 }
+
+impl<'s> TryInto<MaybeEmptyValue<String>> for &'s dyn AnyValueAsStr<'s> {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<MaybeEmptyValue<String>, Self::Error> {
+        match self.try_as_str() {
+            MaybeEmptyValue::Empty => Ok(MaybeEmptyValue::Empty),
+            MaybeEmptyValue::WithValue(value) => Ok(MaybeEmptyValue::WithValue(value.to_string())),
+        }
+    }
+}

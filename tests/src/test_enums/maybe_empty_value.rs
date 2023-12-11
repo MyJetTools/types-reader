@@ -1,3 +1,4 @@
+use types_reader::AnyValue;
 use types_reader_core as types_reader;
 use types_reader_core::MaybeEmptyValue;
 use types_reader_macros::MacrosParameters;
@@ -11,4 +12,8 @@ pub struct MyModel<'s> {
     pub b: MaybeEmptyValue<&'s str>,
     #[any_value_as_string]
     pub b_opt: Option<MaybeEmptyValue<&'s str>>,
+
+    pub any_value: AnyValue<'s>,
+
+    pub any_value_opt: Option<AnyValue<'s>>,
 }

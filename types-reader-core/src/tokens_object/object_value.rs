@@ -225,11 +225,11 @@ impl<'s> TryFrom<&'s ObjectValue> for &'s str {
     }
 }
 
-impl<'s> TryInto<String> for &'s ObjectValue {
+impl<'s> TryFrom<&'s ObjectValue> for String {
     type Error = syn::Error;
 
-    fn try_into(self) -> Result<String, Self::Error> {
-        let value = self.as_string()?.as_str();
+    fn try_from(value: &'s ObjectValue) -> Result<String, Self::Error> {
+        let value = value.as_string()?.as_str();
         Ok(value.to_string())
     }
 }
