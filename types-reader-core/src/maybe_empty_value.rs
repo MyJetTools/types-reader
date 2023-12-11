@@ -1,11 +1,12 @@
 use crate::{ObjectValue, OptionalObjectValue};
 
-pub enum MaybeEmptyValue<T> {
+#[derive(Clone)]
+pub enum MaybeEmptyValue<T: Clone> {
     Empty,
     WithValue(T),
 }
 
-impl<'s, T: TryFrom<&'s ObjectValue, Error = syn::Error>> MaybeEmptyValue<T> {
+impl<'s, T: Clone + TryFrom<&'s ObjectValue, Error = syn::Error>> MaybeEmptyValue<T> {
     pub fn is_empty(&self) -> bool {
         match self {
             Self::Empty => true,

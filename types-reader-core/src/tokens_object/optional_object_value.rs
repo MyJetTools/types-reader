@@ -469,7 +469,7 @@ impl<'s> TryInto<Option<bool>> for &'s OptionalObjectValue {
     }
 }
 
-impl<'s, T> TryInto<MaybeEmptyValue<T>> for &'s OptionalObjectValue
+impl<'s, T: Clone> TryInto<MaybeEmptyValue<T>> for &'s OptionalObjectValue
 where
     T: TryFrom<&'s ObjectValue, Error = syn::Error>,
 {
