@@ -180,7 +180,8 @@ impl TokensObject {
             _ => {}
         }
 
-        Err(self.throw_error_at_param_token(format!("Field '{}' is required", param_name).as_str()))
+        Err(self
+            .throw_error_at_param_token(format!("Field '{}' is required...", param_name).as_str()))
     }
 
     pub fn try_get_named_param(&self, param_name: &str) -> Option<&TokensObject> {
@@ -228,7 +229,7 @@ impl TokensObject {
                 Some(value) => return Ok(value.unwrap_as_value()?),
                 None => {
                     return Err(self.throw_error_at_param_token(
-                        format!("Field '{}' is required", param_name).as_str(),
+                        format!("Field '{}' is required.....", param_name).as_str(),
                     ))
                 }
             },
