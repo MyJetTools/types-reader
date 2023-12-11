@@ -56,6 +56,17 @@ impl<'s> AnyValue<'s> {
         }
     }
 
+    pub fn unwrap_any_value_as_string(&'s self) -> Result<&'s str, syn::Error> {
+        match self {
+            Self::String(value) => Ok(value),
+            Self::Ident(value) => Ok(value.as_str()),
+            Self::Bool(value) => Ok(value.as_str()),
+            Self::Double(value) => Ok(value.as_str()),
+            Self::Number(value) => Ok(value.as_str()),
+            Self::NoValue(_) => Err(self.throw_error("Some value expected")),
+        }
+    }
+
     pub fn throw_error(&self, message: &str) -> syn::Error {
         match self {
             Self::NoValue(ident) => syn::Error::new_spanned(ident, message),
