@@ -2,10 +2,7 @@ use std::str::FromStr;
 
 use rust_extensions::StrOrString;
 
-use crate::{
-    AnyValueAsStr, BoolValue, DoubleValue, MaybeEmptyValue, NumberValue, StringValue, TokenValue,
-    ValueAsIdent,
-};
+use crate::{BoolValue, DoubleValue, NumberValue, StringValue, TokenValue, ValueAsIdent};
 
 #[derive(Debug)]
 pub enum ObjectValue {
@@ -216,16 +213,6 @@ impl TryInto<ObjectValue> for TokenValue {
                 return Err(syn::Error::new_spanned(self.as_literal(), "Unknown type"));
             }
         }
-    }
-}
-
-impl<'s> AnyValueAsStr<'s> for ObjectValue {
-    fn as_str(&'s self) -> &str {
-        self.any_value_as_str()
-    }
-
-    fn throw_error(&self, message: &str) -> syn::Error {
-        self.throw_error(message)
     }
 }
 

@@ -172,7 +172,7 @@ pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
             type Error = syn::Error;
 
             fn try_into(self) -> Result<#name_ident, Self::Error> {
-                let value = self.as_str();
+                let value = self.as_str()?;
 
                 if let Some(value) = #name_ident::try_from_str(value) {
                     return Ok(value);

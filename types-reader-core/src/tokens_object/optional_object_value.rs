@@ -143,13 +143,8 @@ impl OptionalObjectValue {
         }
     }
 
-    pub fn unwrap_any_value_as_str(&self) -> Result<&dyn AnyValueAsStr, syn::Error> {
-        match self {
-            Self::Empty(id) => Err(syn::Error::new_spanned(id, "No value here")),
-            Self::None(ident) => Err(syn::Error::new_spanned(ident, "No value here")),
-            Self::SingleValue(value) => Ok(value),
-            Self::Value { value, .. } => Ok(value),
-        }
+    pub fn unwrap_any_value_as_str(&self) -> &dyn AnyValueAsStr {
+        self
     }
 
     pub fn as_bool(&self) -> Result<&BoolValue, syn::Error> {
@@ -171,6 +166,34 @@ impl OptionalObjectValue {
             Self::SingleValue(value) => Ok(Some(value.as_bool()?)),
             Self::Value { value, .. } => Ok(Some(value.as_bool()?)),
         }
+    }
+}
+
+impl<'s> AnyValueAsStr<'s> for OptionalObjectValue {
+    fn try_as_str(&'s self) -> MaybeEmptyValue<&'s str> {
+        match self {
+            OptionalObjectValue::Empty(_) => MaybeEmptyValue::Empty,
+            OptionalObjectValue::None(_) => MaybeEmptyValue::Empty,
+            OptionalObjectValue::SingleValue(value) => {
+                MaybeEmptyValue::WithValue(value.any_value_as_str())
+            }
+            OptionalObjectValue::Value { name: _, value } => {
+                MaybeEmptyValue::WithValue(value.any_value_as_str())
+            }
+        }
+    }
+
+    fn as_str(&'s self) -> Result<&'s str, syn::Error> {
+        match self {
+            OptionalObjectValue::Empty(_) => Err(self.throw_error("Value is empty")),
+            OptionalObjectValue::None(_) => Err(self.throw_error("There is no value")),
+            OptionalObjectValue::SingleValue(value) => Ok(value.any_value_as_str()),
+            OptionalObjectValue::Value { name: _, value } => Ok(value.any_value_as_str()),
+        }
+    }
+
+    fn throw_error(&self, message: &str) -> syn::Error {
+        self.throw_error(message)
     }
 }
 
@@ -457,7 +480,7 @@ where
             OptionalObjectValue::Empty(_) => Ok(MaybeEmptyValue::Empty),
             OptionalObjectValue::None(_) => Ok(MaybeEmptyValue::Empty),
             OptionalObjectValue::SingleValue(value) => {
-                Ok(MaybeEmptyValue::WithValue(value.try_into()?))
+                Ok(MaybeEmptyValue::WithValue(T::try_from(value)?))
             }
             OptionalObjectValue::Value { value, .. } => {
                 Ok(MaybeEmptyValue::WithValue(value.try_into()?))

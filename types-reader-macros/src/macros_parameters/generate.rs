@@ -155,9 +155,15 @@ fn generate_reading_op(
     }
 
     if sub_ty.as_str().as_str() == MAYBE_EMPTY_VALUE_TYPE_NAME {
+        let any_value_as_string = if indent_is_allowed {
+            quote::quote!(.unwrap_any_value_as_str())
+        } else {
+            quote::quote!()
+        };
+
         return quote::quote! {
             if let Some(value) = value.try_get_named_param(#prop_name){
-                Some(value.get_named_param(#prop_name)?.unwrap_as_value()?.try_into()?)
+                Some(value.get_named_param(#prop_name)?.unwrap_as_value()? #any_value_as_string .try_into()?)
             }else{
                 None
             },
@@ -167,7 +173,7 @@ fn generate_reading_op(
 
     let reading_part = if indent_is_allowed {
         quote::quote! {
-            Some(value.unwrap_any_value_as_str()?.try_into()?)
+            Some(value.unwrap_any_value_as_str().try_into()?)
         }
     } else {
         quote::quote! {
@@ -269,14 +275,20 @@ fn read_param(
     }
 
     if property.ty.as_str().as_str() == MAYBE_EMPTY_VALUE_TYPE_NAME {
+        let any_value_as_string = if ident_is_allowed {
+            quote::quote!(.unwrap_any_value_as_str())
+        } else {
+            quote::quote!()
+        };
+
         if default {
             return quote::quote! {
-                 value.get_value_from_single_or_named(#prop_name)?.try_into()?,
+                 value.get_value_from_single_or_named(#prop_name)? #any_value_as_string  .try_into()?,
             };
         } else {
             return quote::quote! {
                  value.get_named_param(#prop_name)?
-                 .unwrap_as_value()?.try_into()?,
+                 .unwrap_as_value()? #any_value_as_string  .try_into()?,
             };
         }
     }
@@ -284,7 +296,7 @@ fn read_param(
     if default {
         if ident_is_allowed {
             return quote::quote! {
-              value.get_value_from_single_or_named(#prop_name)?.unwrap_any_value_as_str()?.try_into()?,
+              value.get_value_from_single_or_named(#prop_name)?.unwrap_any_value_as_str().try_into()?,
             };
         } else {
             return quote::quote! {
@@ -294,7 +306,7 @@ fn read_param(
     } else {
         if ident_is_allowed {
             return quote::quote! {
-              value.get_named_param(#prop_name)?.unwrap_as_value()?.unwrap_any_value_as_str()?.try_into()?,
+              value.get_named_param(#prop_name)?.unwrap_as_value()?.unwrap_any_value_as_str().try_into()?,
             };
         } else {
             return quote::quote! {
