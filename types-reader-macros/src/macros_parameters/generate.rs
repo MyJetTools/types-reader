@@ -163,7 +163,7 @@ fn generate_reading_op(
 
         return quote::quote! {
             if let Some(value) = value.try_get_named_param(#prop_name){
-                Some(value.get_named_param(#prop_name)?.unwrap_as_value()? #any_value_as_string .try_into()?)
+                Some(value.unwrap_as_value()? #any_value_as_string .try_into()?)
             }else{
                 None
             },
