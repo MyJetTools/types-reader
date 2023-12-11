@@ -3,7 +3,8 @@ use std::str::FromStr;
 use rust_extensions::StrOrString;
 
 use crate::{
-    AnyValueAsStr, BoolValue, DoubleValue, NumberValue, StringValue, TokenValue, ValueAsIdent,
+    AnyValueAsStr, BoolValue, DoubleValue, MaybeEmptyValue, NumberValue, StringValue, TokenValue,
+    ValueAsIdent,
 };
 
 #[derive(Debug)]
@@ -228,11 +229,11 @@ impl<'s> AnyValueAsStr<'s> for ObjectValue {
     }
 }
 
-impl<'s> TryInto<&'s str> for &'s ObjectValue {
+impl<'s> TryFrom<&'s ObjectValue> for &'s str {
     type Error = syn::Error;
 
-    fn try_into(self) -> Result<&'s str, Self::Error> {
-        let value = self.as_string()?.as_str();
+    fn try_from(value: &'s ObjectValue) -> Result<&'s str, Self::Error> {
+        let value = value.as_string()?.as_str();
         Ok(value)
     }
 }

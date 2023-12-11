@@ -1,4 +1,6 @@
-use crate::{AnyValueAsStr, BoolValue, DoubleValue, NumberValue, ObjectValue, StringValue};
+use crate::{
+    AnyValueAsStr, BoolValue, DoubleValue, MaybeEmptyValue, NumberValue, ObjectValue, StringValue,
+};
 
 #[derive(Debug)]
 pub enum OptionalObjectValue {
@@ -440,6 +442,26 @@ impl<'s> TryInto<Option<bool>> for &'s OptionalObjectValue {
         match self.try_as_bool()? {
             Some(value) => Ok(Some(value.get_value())),
             None => Ok(None),
+        }
+    }
+}
+
+impl<'s, T> TryInto<MaybeEmptyValue<T>> for &'s OptionalObjectValue
+where
+    T: TryFrom<&'s ObjectValue, Error = syn::Error>,
+{
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<MaybeEmptyValue<T>, Self::Error> {
+        match self {
+            OptionalObjectValue::Empty(_) => Ok(MaybeEmptyValue::Empty),
+            OptionalObjectValue::None(_) => Ok(MaybeEmptyValue::Empty),
+            OptionalObjectValue::SingleValue(value) => {
+                Ok(MaybeEmptyValue::WithValue(value.try_into()?))
+            }
+            OptionalObjectValue::Value { value, .. } => {
+                Ok(MaybeEmptyValue::WithValue(value.try_into()?))
+            }
         }
     }
 }

@@ -4,6 +4,7 @@ use types_reader_core::{PropertyType, StructProperty, StructureSchema};
 pub const OBJECT_VALUE_TYPE_NAME: &str = "ObjectValue";
 pub const TOKENS_OBJECT_TYPE_NAME: &str = "TokensObject";
 pub const OPTIONAL_OBJECT_VALUE_TYPE_NAME: &str = "OptionalObjectValue";
+pub const MAYBE_EMPTY_VALUE_TYPE_NAME: &str = "MaybeEmptyValue";
 
 pub fn generate(input: TokenStream) -> Result<TokenStream, syn::Error> {
     let ast: syn::DeriveInput = syn::parse(input).unwrap();
@@ -153,6 +154,17 @@ fn generate_reading_op(
         };
     }
 
+    if sub_ty.as_str().as_str() == MAYBE_EMPTY_VALUE_TYPE_NAME {
+        return quote::quote! {
+            if let Some(value) = value.try_get_named_param(#prop_name){
+                Some(value.get_named_param(#prop_name)?.unwrap_as_value()?.try_into()?)
+            }else{
+                None
+            },
+
+        };
+    }
+
     let reading_part = if indent_is_allowed {
         quote::quote! {
             Some(value.unwrap_any_value_as_str()?.try_into()?)
@@ -242,16 +254,30 @@ fn read_param(
             OPTIONAL_OBJECT_VALUE_TYPE_NAME => {
                 if default {
                     return quote::quote! {
-                         value.get_value_from_single_or_named(#prop_name)?
+                         value.get_value_from_single_or_named(#prop_name)?,
                     };
                 } else {
                     return quote::quote! {
                          value.get_named_param(#prop_name)?
-                         .unwrap_as_value()?
+                         .unwrap_as_value()?,
                     };
                 }
             }
+
             _ => {}
+        }
+    }
+
+    if property.ty.as_str().as_str() == MAYBE_EMPTY_VALUE_TYPE_NAME {
+        if default {
+            return quote::quote! {
+                 value.get_value_from_single_or_named(#prop_name)?.try_into()?,
+            };
+        } else {
+            return quote::quote! {
+                 value.get_named_param(#prop_name)?
+                 .unwrap_as_value()?.try_into()?,
+            };
         }
     }
 
