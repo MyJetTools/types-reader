@@ -1,4 +1,4 @@
-use crate::{NextToken, OptionalObjectValue, TokensReader};
+use crate::{AnyValueAsStr, NextToken, ObjectValue, OptionalObjectValue, TokensReader};
 
 use proc_macro2::TokenStream;
 
@@ -319,6 +319,11 @@ impl TokensObject {
         Err(next_token.throw_error("Invalid value to read"))
     }
 
+    pub fn unwrap_any_value_as_str(&self) -> Result<&dyn AnyValueAsStr, syn::Error> {
+        let value = self.unwrap_as_value()?;
+        Ok(value)
+    }
+
     pub fn parse_as_array(
         param_name: syn::Ident,
         mut token_reader: TokensReader,
@@ -352,6 +357,15 @@ impl TryInto<TokensObject> for proc_macro2::TokenStream {
 
     fn try_into(self) -> Result<TokensObject, Self::Error> {
         TokensObject::new(self.into())
+    }
+}
+
+impl<'s> TryInto<&'s ObjectValue> for &'s TokensObject {
+    type Error = syn::Error;
+
+    fn try_into(self) -> Result<&'s ObjectValue, Self::Error> {
+        let value = self.unwrap_as_value()?;
+        value.unwrap_value()
     }
 }
 

@@ -143,8 +143,8 @@ impl OptionalObjectValue {
         }
     }
 
-    pub fn unwrap_any_value_as_str(&self) -> &dyn AnyValueAsStr {
-        self
+    pub fn unwrap_any_value_as_str(&self) -> Result<&dyn AnyValueAsStr, syn::Error> {
+        Ok(self)
     }
 
     pub fn as_bool(&self) -> Result<&BoolValue, syn::Error> {
