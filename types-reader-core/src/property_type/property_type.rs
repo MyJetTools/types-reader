@@ -214,6 +214,14 @@ impl<'s> PropertyType<'s> {
         false
     }
 
+    pub fn is_usize(&self) -> bool {
+        if let PropertyType::USize = self {
+            return true;
+        }
+
+        false
+    }
+
     pub fn is_date_time(&self) -> bool {
         if let PropertyType::DateTime = self {
             return true;
