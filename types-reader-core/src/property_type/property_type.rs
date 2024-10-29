@@ -214,6 +214,62 @@ impl<'s> PropertyType<'s> {
         false
     }
 
+    pub fn is_i8(&self) -> bool {
+        if let PropertyType::I8 = self {
+            return true;
+        }
+
+        false
+    }
+
+    pub fn is_u16(&self) -> bool {
+        if let PropertyType::U16 = self {
+            return true;
+        }
+
+        false
+    }
+
+    pub fn is_i16(&self) -> bool {
+        if let PropertyType::I16 = self {
+            return true;
+        }
+
+        false
+    }
+
+    pub fn is_u32(&self) -> bool {
+        if let PropertyType::U32 = self {
+            return true;
+        }
+
+        false
+    }
+
+    pub fn is_i32(&self) -> bool {
+        if let PropertyType::I32 = self {
+            return true;
+        }
+
+        false
+    }
+
+    pub fn is_u64(&self) -> bool {
+        if let PropertyType::U64 = self {
+            return true;
+        }
+
+        false
+    }
+
+    pub fn is_i64(&self) -> bool {
+        if let PropertyType::I64 = self {
+            return true;
+        }
+
+        false
+    }
+
     pub fn is_usize(&self) -> bool {
         if let PropertyType::USize = self {
             return true;
