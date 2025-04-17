@@ -21,6 +21,7 @@ pub const BOOL: &str = "bool";
 pub const STRING: &str = "String";
 pub const DATE_TIME: &str = "DateTimeAsMicroseconds";
 
+#[derive(Clone)]
 pub enum PropertyType<'s> {
     U8,
     I8,
