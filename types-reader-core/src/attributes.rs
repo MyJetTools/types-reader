@@ -11,11 +11,11 @@ pub trait MacrosAttribute {
 
 pub struct Attributes<'s> {
     attrs: HashMap<String, Vec<TokensObject>>,
-    root: &'s syn::DeriveInput,
+    root: &'s dyn ToTokens,
 }
 
 impl<'s> Attributes<'s> {
-    pub fn new(root: &'s syn::DeriveInput, src: &'s [syn::Attribute]) -> Result<Self, syn::Error> {
+    pub fn new(root: &'s dyn ToTokens, src: &'s [syn::Attribute]) -> Result<Self, syn::Error> {
         let mut attrs = HashMap::new();
 
         for attr in src {
