@@ -32,7 +32,7 @@ impl<'s> StructureSchema<'s> {
         Some(result)
     }
 
-    pub fn get_as_name(&'s self, prop_name: &str) -> Option<&'s StructProperty<'s>> {
+    pub fn get_by_prop_name(&'s self, prop_name: &str) -> Option<&'s StructProperty<'s>> {
         for itm in self.properties.iter() {
             if itm.name.as_str() == prop_name {
                 return Some(itm);
