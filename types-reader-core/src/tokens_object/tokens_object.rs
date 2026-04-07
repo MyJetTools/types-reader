@@ -32,6 +32,12 @@ impl TokensObject {
 
         let mut ident_token = match next_token.try_unwrap_as_value() {
             Ok(token_value) => {
+                let remaining = token_reader.try_read_next_token()?;
+                if let Some(remaining) = remaining {
+                    return Err(remaining.throw_error(
+                        "When using multiple parameters, all parameters must be named. E.g.: name:\"value\", param:true",
+                    ));
+                }
                 return Ok(Self::Value(OptionalObjectValue::SingleValue(
                     token_value.try_into()?,
                 )));
@@ -750,5 +756,18 @@ mod tests {
                 .get_value(),
             false
         );
+    }
+
+    #[test]
+    fn test_single_value_with_extra_named_params_returns_error() {
+        let src = r#""my-value", with_expires:true"#;
+
+        let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
+
+        let result = TokensObject::new(token_stream.into());
+
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.to_string().contains("all parameters must be named"));
     }
 }
