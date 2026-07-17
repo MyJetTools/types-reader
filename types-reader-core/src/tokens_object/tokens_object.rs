@@ -47,7 +47,9 @@ impl TokensObject {
 
         let mut items = HashMap::new();
 
-        while let Ok(param_name) = ident_token.unwrap_into_ident(None) {
+        loop {
+            let param_name = ident_token.unwrap_into_ident(None)?;
+
             let token_equal = token_reader.try_read_next_token()?;
 
             if token_equal.is_none() {
@@ -65,6 +67,22 @@ impl TokensObject {
                 let token_value = token_reader.read_next_token()?;
                 let id = param_name.to_string();
                 items.insert(id, Self::read_value(param_name, token_value)?);
+            } else {
+                // List form of the parameter. E.g.: name(param: "value")
+                match token_equal.try_unwrap_into_group(None) {
+                    Ok((group_tokens, delimiter)) => {
+                        let id = param_name.to_string();
+                        items.insert(
+                            id,
+                            Self::read_group_value(param_name, group_tokens, delimiter)?,
+                        );
+                    }
+                    Err(token_equal) => {
+                        return Err(token_equal.throw_error(
+                            "Expected ':', '=' or a group of parameters. E.g.: name:\"value\", param(value:true)",
+                        ));
+                    }
+                }
             }
 
             let next_token = token_reader.try_read_next_token()?;
@@ -303,26 +321,34 @@ impl TokensObject {
         };
 
         let next_token = match next_token.try_unwrap_into_group(None) {
-            Ok((group_tokens, delimiter)) => match delimiter {
-                proc_macro2::Delimiter::Bracket => {
-                    let (items, token_stream) = Self::parse_as_array(param_name, group_tokens)?;
-                    return Ok(Self::Vec {
-                        token_stream,
-                        items,
-                    });
-                }
-                proc_macro2::Delimiter::Brace => {
-                    return Ok(Self::new(group_tokens)?);
-                }
-                _ => panic!(
-                    "Value can not be parsed from group {:?} of tokens",
-                    delimiter
-                ),
-            },
+            Ok((group_tokens, delimiter)) => {
+                return Self::read_group_value(param_name, group_tokens, delimiter)
+            }
             Err(next_token) => next_token,
         };
 
         Err(next_token.throw_error("Invalid value to read"))
+    }
+
+    fn read_group_value(
+        param_name: syn::Ident,
+        group_tokens: TokensReader,
+        delimiter: proc_macro2::Delimiter,
+    ) -> Result<Self, syn::Error> {
+        match delimiter {
+            proc_macro2::Delimiter::Bracket => {
+                let (items, token_stream) = Self::parse_as_array(param_name, group_tokens)?;
+                Ok(Self::Vec {
+                    token_stream,
+                    items,
+                })
+            }
+            proc_macro2::Delimiter::Brace | proc_macro2::Delimiter::Parenthesis => {
+                Self::new(group_tokens)
+            }
+            proc_macro2::Delimiter::None => Err(group_tokens
+                .throw_error("Value can not be parsed from a group of tokens with no delimiter")),
+        }
     }
 
     pub fn unwrap_any_value_as_str(&self) -> Result<&dyn AnyValueAsStr, syn::Error> {
@@ -769,5 +795,119 @@ mod tests {
         assert!(result.is_err());
         let err = result.unwrap_err();
         assert!(err.to_string().contains("all parameters must be named"));
+    }
+
+    #[test]
+    fn test_list_form_param_is_not_lost() {
+        let src = r#"rename_all(serialize = "camelCase", deserialize = "kebab-case")"#;
+
+        let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
+
+        let params_list = TokensObject::new(token_stream.into()).unwrap();
+
+        let rename_all = params_list.get_named_param("rename_all").unwrap();
+
+        assert_eq!(
+            rename_all
+                .get_named_param("serialize")
+                .unwrap()
+                .unwrap_as_value()
+                .unwrap()
+                .as_string()
+                .unwrap()
+                .as_str(),
+            "camelCase"
+        );
+
+        assert_eq!(
+            rename_all
+                .get_named_param("deserialize")
+                .unwrap()
+                .unwrap_as_value()
+                .unwrap()
+                .as_string()
+                .unwrap()
+                .as_str(),
+            "kebab-case"
+        );
+    }
+
+    #[test]
+    fn test_list_form_mixed_with_other_params() {
+        let src = r#"first: 1, rename_all(serialize = "camelCase"), last: true"#;
+
+        let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
+
+        let params_list = TokensObject::new(token_stream.into()).unwrap();
+
+        assert_eq!(
+            params_list
+                .get_named_param("first")
+                .unwrap()
+                .unwrap_as_value()
+                .unwrap()
+                .as_number()
+                .unwrap()
+                .as_i32(),
+            1
+        );
+
+        assert_eq!(
+            params_list
+                .get_named_param("rename_all")
+                .unwrap()
+                .get_named_param("serialize")
+                .unwrap()
+                .unwrap_as_value()
+                .unwrap()
+                .as_string()
+                .unwrap()
+                .as_str(),
+            "camelCase"
+        );
+
+        assert_eq!(
+            params_list
+                .get_named_param("last")
+                .unwrap()
+                .unwrap_as_value()
+                .unwrap()
+                .as_bool()
+                .unwrap()
+                .get_value(),
+            true
+        );
+    }
+
+    #[test]
+    fn test_list_form_with_single_value_inside() {
+        let src = r#"rename("my-name")"#;
+
+        let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
+
+        let params_list = TokensObject::new(token_stream.into()).unwrap();
+
+        assert_eq!(
+            params_list
+                .get_named_param("rename")
+                .unwrap()
+                .unwrap_as_value()
+                .unwrap()
+                .as_string()
+                .unwrap()
+                .as_str(),
+            "my-name"
+        );
+    }
+
+    #[test]
+    fn test_param_which_is_not_ident_returns_error() {
+        let src = r#"first: 1, "orphan-value""#;
+
+        let token_stream = proc_macro2::TokenStream::from_str(src).unwrap();
+
+        let result = TokensObject::new(token_stream.into());
+
+        assert!(result.is_err());
     }
 }

@@ -1,4 +1,4 @@
-mod attributes;
+pub mod attributes;
 mod enum_case;
 mod struct_property;
 mod tokens_object;
@@ -15,7 +15,7 @@ pub use tokens_iterator::*;
 mod structure_schema;
 pub use structure_schema::*;
 mod type_name;
-pub use attributes::MacrosAttribute;
+pub use attributes::{Attributes, MacrosAttribute};
 pub use type_name::*;
 mod maybe_empty_value;
 pub use maybe_empty_value::*;

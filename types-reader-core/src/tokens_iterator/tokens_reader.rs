@@ -78,11 +78,10 @@ impl TokensReader {
 
     pub fn read_next_token(&mut self) -> Result<NextToken, syn::Error> {
         let next_token = self.try_read_next_token()?;
-        if next_token.is_none() {
-            panic!("Trying to read next token - but no tokens left");
+        match next_token {
+            Some(next_token) => Ok(next_token),
+            None => Err(self.throw_error("Trying to read next token - but no tokens left")),
         }
-
-        Ok(next_token.unwrap())
     }
 
     pub fn into_token_stream(self) -> TokenStream {
