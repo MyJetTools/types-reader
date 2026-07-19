@@ -64,7 +64,7 @@ impl<'s> PropertyType<'s> {
                     lifetime: ref_to.lifetime.as_ref(),
                 }
             }
-            syn::Type::BareFn(_) => panic!("BareFn type is not supported"),
+            syn::Type::FnPtr(_) => panic!("FnPtr type is not supported"),
             syn::Type::Never(_) => panic!("Never type is not supported"),
             syn::Type::Tuple(_) => panic!("Tuple type is not supported"),
             syn::Type::Path(type_path) => {
